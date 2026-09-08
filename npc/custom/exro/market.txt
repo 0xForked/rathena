@@ -1,0 +1,245 @@
+//===== eXRo Script ==========================================
+//= Market Broker  (PLAN-005 / ADR-0011)
+//===== Description: =========================================
+//= Bridge between the eXRo website market and the game.
+//=   1. Deposit an item into a listing you created on the site.
+//=   2. Top up your market wallet with zeny.
+//=   3. Info on sale proceeds / withdrawals (both web-side).
+//=   4. Info on cancelling a listing (web-side; item is mailed back).
+//=
+//= It reads/writes the www_market_* tables directly via query_sql
+//= (one shared MariaDB, ADR-0011). Every interpolated string is
+//= escape_sql()'d; every id is a numeric script var or an escaped uuid.
+//= www never touches inventory — the item leaves the map-server here.
+//=
+//= LIVE-VERIFIED 2026-09-08 (PLAN-006 tasks 13-14): in-client item
+//= deposit (delitemidx -> www_market_escrow -> listing active, qty =
+//= deposited amount) and zeny top-up (Zeny debited before the wallet
+//= credit, one www_market_wallet_ledger row) both round-trip.
+//===== Column contract (must match www/db/schema.sql) =======
+//= www_market_listings: id, account_id, status, qty, updated_at
+//=   status flow touched here: pending_deposit -> active
+//= www_market_escrow: listing_id, deposited_by_char_id, nameid, amount,
+//=   refine, attribute, identify, card0..card3,
+//=   option_id0..4 / option_val0..4 / option_parm0..4,
+//=   enchantgrade, bound, unique_id
+//= www_market_wallet: account_id, zeny_balance
+//= www_market_wallet_ledger: id, account_id, delta, reason, ref, balance_after
+//============================================================
+
+prontera,155,185,4	script	Market Broker	4_M_03,{
+	mes "[Market Broker]";
+	mes "I move items and zeny between the eXRo website market and the game.";
+	next;
+	switch (select(
+		"Deposit an item for a listing",
+		"Top up my market wallet (zeny)",
+		"Sale proceeds & withdrawals",
+		"Cancel a listing",
+		"Never mind")) {
+
+	// ----------------------------------------------------------
+	case 1:
+		.@aid = getcharid(3);
+		.@cid = getcharid(0);
+		.@n = query_sql("SELECT id, name, qty, price FROM `www_market_listings` "
+			+ "WHERE account_id = " + .@aid + " AND status = 'pending_deposit' "
+			+ "ORDER BY created_at ASC LIMIT 100",
+			.@lid$, .@lname$, .@lqty, .@lprice);
+		if (.@n < 1) {
+			mes "[Market Broker]";
+			mes "You have no listings waiting for an item.";
+			mes "Create one on the website first, then come back.";
+			close;
+		}
+		.@menu$ = "";
+		for (.@i = 0; .@i < .@n; ++.@i)
+			.@menu$ += .@lname$[.@i] + " (x" + .@lqty[.@i] + " @ " + .@lprice[.@i] + "z):";
+		.@p = select(.@menu$) - 1;
+		.@lid$ = .@lid$[.@p];
+		.@lname$ = .@lname$[.@p];
+
+		getinventorylist();
+		if (@inventorylist_count < 1) {
+			mes "[Market Broker]";
+			mes "Your inventory is empty.";
+			close;
+		}
+		.@imenu$ = "";
+		for (.@i = 0; .@i < @inventorylist_count; ++.@i)
+			.@imenu$ += "+" + @inventorylist_refine[.@i] + " "
+				+ getitemname(@inventorylist_id[.@i])
+				+ " (x" + @inventorylist_amount[.@i] + "):";
+		.@s = select(.@imenu$) - 1;
+
+		// --- E15: bound / rental items are not tradeable ---
+		if (@inventorylist_bound[.@s] != 0 || @inventorylist_expire[.@s] != 0) {
+			mes "[Market Broker]";
+			mes "Account-bound and rental items can't be listed.";
+			close;
+		}
+
+		// --- capture the real attributes of the picked stack ---
+		// getinventorylist arrays are card1..4 / option_*1..5 (1-based);
+		// the DB columns are card0..3 / option_*0..4 (0-based) — off by one.
+		.@nameid   = @inventorylist_id[.@s];
+		.@idx      = @inventorylist_idx[.@s];
+		.@amount   = @inventorylist_amount[.@s];
+		.@refine   = @inventorylist_refine[.@s];
+		.@identify = @inventorylist_identify[.@s];
+		.@attr     = @inventorylist_attribute[.@s];
+		.@grade    = @inventorylist_enchantgrade[.@s];
+		setarray .@card[0],
+			@inventorylist_card1[.@s], @inventorylist_card2[.@s],
+			@inventorylist_card3[.@s], @inventorylist_card4[.@s];
+		setarray .@optid[0],
+			@inventorylist_option_id1[.@s], @inventorylist_option_id2[.@s],
+			@inventorylist_option_id3[.@s], @inventorylist_option_id4[.@s],
+			@inventorylist_option_id5[.@s];
+		setarray .@optval[0],
+			@inventorylist_option_value1[.@s], @inventorylist_option_value2[.@s],
+			@inventorylist_option_value3[.@s], @inventorylist_option_value4[.@s],
+			@inventorylist_option_value5[.@s];
+		setarray .@optparm[0],
+			@inventorylist_option_parameter1[.@s], @inventorylist_option_parameter2[.@s],
+			@inventorylist_option_parameter3[.@s], @inventorylist_option_parameter4[.@s],
+			@inventorylist_option_parameter5[.@s];
+
+		mes "[Market Broker]";
+		mes "Deposit ^0055FF" + .@amount + "x " + getitemname(.@nameid) + "^000000 into:";
+		mes " ^777777" + .@lname$ + "^000000";
+		mes "Whatever you deposit is exactly what the buyer gets. Proceed?";
+		next;
+		if (select("Deposit it", "Cancel") == 2) close;
+
+		// --- remove the exact stack the seller picked (whole stack, by index) ---
+		if (delitemidx(.@idx) == 0) {
+			mes "[Market Broker]";
+			mes "I couldn't take that item. Try again.";
+			close;
+		}
+
+		// --- write escrow, THEN flip the listing; on any failure, refund ---
+		.@esc$ = "INSERT INTO `www_market_escrow` "
+			+ "(listing_id, deposited_by_char_id, nameid, amount, refine, attribute, identify, "
+			+ "card0, card1, card2, card3, "
+			+ "option_id0, option_val0, option_parm0, option_id1, option_val1, option_parm1, "
+			+ "option_id2, option_val2, option_parm2, option_id3, option_val3, option_parm3, "
+			+ "option_id4, option_val4, option_parm4, enchantgrade, bound, unique_id) VALUES ('"
+			+ escape_sql(.@lid$) + "', " + .@cid + ", " + .@nameid + ", " + .@amount + ", "
+			+ .@refine + ", " + .@attr + ", " + .@identify + ", "
+			+ .@card[0] + ", " + .@card[1] + ", " + .@card[2] + ", " + .@card[3] + ", "
+			+ .@optid[0] + ", " + .@optval[0] + ", " + .@optparm[0] + ", "
+			+ .@optid[1] + ", " + .@optval[1] + ", " + .@optparm[1] + ", "
+			+ .@optid[2] + ", " + .@optval[2] + ", " + .@optparm[2] + ", "
+			+ .@optid[3] + ", " + .@optval[3] + ", " + .@optparm[3] + ", "
+			+ .@optid[4] + ", " + .@optval[4] + ", " + .@optparm[4] + ", "
+			+ .@grade + ", 0, 0)";
+		query_sql(.@esc$);
+
+		.@chk = query_sql("SELECT 1 FROM `www_market_escrow` WHERE listing_id = '"
+			+ escape_sql(.@lid$) + "'", .@dummy);
+		if (.@chk < 1) {
+			callsub S_Refund;
+			mes "[Market Broker]";
+			mes "The market didn't accept the deposit. Your item is back.";
+			close;
+		}
+
+		query_sql("UPDATE `www_market_listings` SET status = 'active', qty = " + .@amount
+			+ ", updated_at = NOW() WHERE id = '" + escape_sql(.@lid$) + "' "
+			+ "AND account_id = " + .@aid + " AND status = 'pending_deposit'");
+
+		.@ok = query_sql("SELECT 1 FROM `www_market_listings` WHERE id = '"
+			+ escape_sql(.@lid$) + "' AND status = 'active'", .@dummy);
+		if (.@ok < 1) {
+			// E18: the listing didn't flip to 'active'. Refund ONLY if the escrow
+			// row is still ours — a website cancel in this window already mailed
+			// the item back and consumed the row; refunding then = dupe.
+			.@still = query_sql("SELECT 1 FROM `www_market_escrow` WHERE listing_id = '"
+				+ escape_sql(.@lid$) + "'", .@dummy);
+			if (.@still >= 1) {
+				query_sql("DELETE FROM `www_market_escrow` WHERE listing_id = '"
+					+ escape_sql(.@lid$) + "'");
+				callsub S_Refund;
+				mes "[Market Broker]";
+				mes "Couldn't activate the listing. Your item is back.";
+				close;
+			}
+			mes "[Market Broker]";
+			mes "That listing was cancelled on the website in the meantime —";
+			mes "your item was mailed back. Check your mailbox.";
+			close;
+		}
+
+		mes "[Market Broker]";
+		mes "Done. Your listing is live on the website.";
+		mes "You'll get the zeny in your market wallet when it sells.";
+		close;
+
+	// ----------------------------------------------------------
+	case 2:
+		mes "[Market Broker]";
+		mes "How much zeny do you want to move into your market wallet?";
+		next;
+		input .@amt, 0, 1000000000;
+		if (.@amt < 1) {
+			mes "[Market Broker]";
+			mes "Cancelled.";
+			close;
+		}
+		if (Zeny < .@amt) {
+			mes "[Market Broker]";
+			mes "You don't have that much zeny on you.";
+			close;
+		}
+		.@aid = getcharid(3);
+		// E9: take the zeny FIRST, then credit the wallet. A crash between the
+		// two costs the player the top-up (safe for the house) — never a double.
+		set Zeny, Zeny - .@amt;
+		query_sql("INSERT INTO `www_market_wallet` (account_id, zeny_balance) VALUES ("
+			+ .@aid + ", " + .@amt + ") "
+			+ "ON DUPLICATE KEY UPDATE zeny_balance = zeny_balance + " + .@amt);
+		.@credited = query_sql("SELECT zeny_balance FROM `www_market_wallet` WHERE account_id = "
+			+ .@aid, .@bal);
+		if (.@credited < 1) {
+			set Zeny, Zeny + .@amt; // detectable failure — hand it straight back
+			mes "[Market Broker]";
+			mes "The wallet didn't respond. Your zeny was returned.";
+			close;
+		}
+		query_sql("INSERT INTO `www_market_wallet_ledger` (id, account_id, delta, reason, ref, balance_after) "
+			+ "VALUES (UUID(), " + .@aid + ", " + .@amt + ", 'NPC zeny top-up', NULL, " + .@bal[0] + ")");
+		mes "[Market Broker]";
+		mes "Added ^0055FF" + .@amt + "z^000000. Wallet balance: ^0055FF" + .@bal[0] + "z^000000.";
+		close;
+
+	// ----------------------------------------------------------
+	case 3:
+		mes "[Market Broker]";
+		mes "Sale proceeds land in your market wallet automatically.";
+		mes "To take zeny out, use ^0055FFAccount > Market^000000 on the website —";
+		mes "it's mailed to the character you choose. I don't hand out zeny here.";
+		close;
+
+	// ----------------------------------------------------------
+	case 4:
+		mes "[Market Broker]";
+		mes "Cancel a listing from ^0055FFAccount > Market^000000 on the website.";
+		mes "If it already has an item deposited, that item is mailed straight";
+		mes "back to the character it came from.";
+		close;
+
+	// ----------------------------------------------------------
+	case 5:
+		close;
+	}
+	end;
+
+// Recreate the just-deleted stack faithfully (refund on a failed deposit).
+S_Refund:
+	getitem4 .@nameid, .@amount, .@identify, .@refine, .@attr,
+		.@card[0], .@card[1], .@card[2], .@card[3], .@grade,
+		.@optid, .@optval, .@optparm;
+	return;
+}
