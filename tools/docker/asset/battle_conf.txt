@@ -1,0 +1,8 @@
+// eXRo battle-config overrides (bind-mounted to conf/import/battle_conf.txt).
+// Additive over conf/battle/*.conf — only keys set here change.
+
+// Roulette is disabled. The /play client also hides the icon
+// (www/public/play/Config.js enableRoulette:false); this is the server-side
+// backstop so a modified client still can't open it.
+feature.roulette: off
+feature.roulette_bonus_reward: off
