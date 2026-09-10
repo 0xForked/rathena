@@ -62,6 +62,7 @@ OnMobKilled:
 		end;
 	getitem .prize, .amount;
 	callfunc "F_AddActCoin", 1;	// eXRo (PLAN-017): event participation payout
+	callfunc "F_ExroBoardBump", "mushroom", getcharid(3), strcharinfo(0), 1;	// eXRo (PLAN-019): C6 board
 	.@spawn = mobcount( .event_map$, strnpcinfo(0) + "::OnMobKilled" );
 	if (.@spawn > 0)
 		announce "[ " + strcharinfo(0) + " ] has killed a Mushroom. There are now " + .@spawn + " Mushroom(s) left.",bc_map;

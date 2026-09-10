@@ -190,6 +190,7 @@ S_PayTownTopN:
 	for (.@i = 0; .@i < .@n; .@i++) {
 		if ($@ev_score[.@i] <= 0)
 			break;
+		callfunc "F_ExroBoardBump", "invasion", $@ev_aid[.@i], $@ev_name$[.@i], $@ev_score[.@i];
 		if (.@i < .inv_topn) {
 			.@tier = (.@i == 0) ? 1 : ((.@i <= 2) ? 2 : 3);
 			callfunc "F_EventReward", $@ev_cid[.@i], $@ev_aid[.@i], .@tier;
@@ -270,5 +271,26 @@ function	script	F_EventReward	{
 		else                  { callfunc "F_AddExroCoin", 5; callfunc "F_AddActCoin", 3; }
 		detachrid;
 	}
+	return;
+}
+
+//== F_ExroBoardBump — running counter into www_leaderboard_stats (PLAN-019) =
+//= Feeds the website event boards (C5/C6). Same idiom + column contract as
+//= npc/custom/exro/leaderboard.txt: PK (kind, account_id), INSERT ... ON
+//= DUPLICATE KEY UPDATE. Zero HTTP from the map-server (ADR-0003 / ADR-0008).
+//=   getarg(0) = kind ('invasion' | 'mushroom')   -- fixed literals, not input
+//=   getarg(1) = account id (numeric)
+//=   getarg(2) = char name (escape_sql'd here)
+//=   getarg(3) = amount to add to the running score
+function	script	F_ExroBoardBump	{
+	.@kind$ = getarg(0);
+	.@aid   = getarg(1);
+	.@name$ = escape_sql(getarg(2));
+	.@n     = getarg(3);
+	if (.@aid <= 0 || .@n <= 0)
+		return;
+	query_sql("INSERT INTO `www_leaderboard_stats` (kind, account_id, char_name, score) "
+		+ "VALUES ('" + .@kind$ + "', " + .@aid + ", '" + .@name$ + "', " + .@n + ") "
+		+ "ON DUPLICATE KEY UPDATE score = score + " + .@n + ", char_name = '" + .@name$ + "'");
 	return;
 }
