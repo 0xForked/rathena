@@ -12,20 +12,30 @@
 //= mirror in the services plaza. Add the room later only if
 //= show-off previews actually become a nuisance.
 //=
-//= Restore: the NPC restores your real look on close. If you
-//= relog mid-preview the stuck look clears on your next map
-//= change (equipment looks are re-sent on map load).
+//= Restore: the NPC rebuilds your look from what you actually
+//= have equipped (costume slot wins over the normal slot), so
+//= "Reset my look" / "Done" also clears a look left stuck by a
+//= previous ESC-out (RPT-004 #20). A relog also always clears it.
 //============================================================
 
+// RPT-004 #20: real look for an EQI slot = its item's view id, 0 if empty.
+function	script	F_ExroSlotView	{
+	.@it = getequipid(getarg(0));
+	return (.@it > 0) ? getiteminfo(.@it, ITEMINFO_VIEW) : 0;
+}
+
 prontera,164,185,4	script	Costume Mirror	4_F_KAFRA1,{
-	// snapshot the real looks for this session
-	.@r_top = getlook(LOOK_HEAD_TOP);
-	.@r_mid = getlook(LOOK_HEAD_MID);
-	.@r_bot = getlook(LOOK_HEAD_BOTTOM);
-	.@r_rob = getlook(LOOK_ROBE);
+	// snapshot the REAL looks from equipment (not getlook(), which
+	// would capture a look already left stuck by an earlier ESC-out).
+	// Costume slot shows over the normal slot, so it wins.
+	.@r_top = callfunc("F_ExroSlotView", EQI_COSTUME_HEAD_TOP); if (!.@r_top) .@r_top = callfunc("F_ExroSlotView", EQI_HEAD_TOP);
+	.@r_mid = callfunc("F_ExroSlotView", EQI_COSTUME_HEAD_MID); if (!.@r_mid) .@r_mid = callfunc("F_ExroSlotView", EQI_HEAD_MID);
+	.@r_bot = callfunc("F_ExroSlotView", EQI_COSTUME_HEAD_LOW); if (!.@r_bot) .@r_bot = callfunc("F_ExroSlotView", EQI_HEAD_LOW);
+	.@r_rob = callfunc("F_ExroSlotView", EQI_COSTUME_GARMENT);  if (!.@r_rob) .@r_rob = callfunc("F_ExroSlotView", EQI_GARMENT);
 
 	mes "[Costume Mirror]";
 	mes "Give me an item ID and I'll show you the look — no charge, nothing kept.";
+	mes "Stuck with a look you can't take off? Pick ^0055FFReset my look^000000.";
 
 	while (1) {
 		next;

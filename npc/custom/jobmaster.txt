@@ -72,6 +72,8 @@ function	Can_Change_Third	{
 		return false; // Not second Class
 	if( eaclass()&EAJL_THIRD )
 		return false; // Already Third Class
+	if( !(eaclass()&EAJL_UPPER) && !Is_Baby() )
+		return false; // eXRo RPT-004 #8: must Rebirth (transcend) before 3rd class
 	if( roclass(eaclass()|EAJL_THIRD) < 0 )
 		return false; // Job has no third Class
 	if( (eaclass()&EAJ_UPPERMASK) == EAJ_SUPER_NOVICE )

@@ -1,0 +1,54 @@
+//===== eXRo Script ==========================================
+//= Hub Services — storage + mount rental at the Prontera plaza
+//===== Description: =========================================
+//= RPT-004 #16 + #17. Two small QoL NPCs next to the rest of
+//= the services hub (warper / healer / jobmaster / stylist /
+//= reset / coin shops).
+//=
+//= #16 Storage Keeper — opens account storage. `openstorage`
+//= needs no Kafra card / fee here; this is a convenience desk,
+//= the real Kafra network still exists for save/warp/cart.
+//=
+//= #17 Rental Master — free mounts. These are OPTION toggles,
+//= not timed rentals: they last until dismissed, a job change,
+//= or relog-with-job-recalc. ponytail: a real timed rental
+//= needs mount items + `rentitem`; a toggle covers "I want a
+//= Peco / Falcon / Cart / Dragon and there's no NPC for it".
+//============================================================
+
+prontera,160,188,4	script	Storage Keeper	4_F_KAFRA1,{
+	mes "[Storage Keeper]";
+	mes "Need your storage? Right here.";
+	next;
+	if (select("Open storage", "Leave") == 2)
+		close;
+	close2;
+	openstorage;
+	end;
+}
+
+prontera,158,188,4	script	Rental Master	4_M_JOB_KNIGHT2,{
+	mes "[Rental Master]";
+	mes "Free mounts. They stay until you dismiss them or change job.";
+	next;
+	switch (select("Cart", "Falcon", "Peco Peco", "Dragon (Rune Knight)", "Dismiss all", "Leave")) {
+	case 1: setcart 1; break;
+	case 2: setfalcon 1; break;
+	case 3: setriding 1; break;
+	case 4: setdragon 1; break;
+	case 5:
+		setcart 0;
+		setfalcon 0;
+		setriding 0;
+		setdragon 0;
+		setmadogear 0;
+		mes "[Rental Master]";
+		mes "All dismissed.";
+		close;
+	case 6:
+		close;
+	}
+	mes "[Rental Master]";
+	mes "There you go. Come back any time to dismiss it.";
+	close;
+}

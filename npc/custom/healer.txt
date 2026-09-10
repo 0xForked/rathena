@@ -16,7 +16,7 @@
 -	script	Healer	-1,{
 
 	.@Price = 0;	// Zeny required for heal          (eXRo: free)
-	.@Buffs = 0;	// Also buff players? (1: yes / 0: no)  (eXRo: no)
+	.@Buffs = 1;	// Also buff players? (1: yes / 0: no)  (eXRo RPT-004 #1: yes)
 	.@Delay = 3;	// Heal delay, in seconds          (eXRo PLAN-015: 3s)
 
 	if (@HD > gettimetick(2))
@@ -36,6 +36,10 @@
 		sc_start SC_INCREASEAGI,240000,10;
 		specialeffect2 EF_BLESSING;
 		sc_start SC_BLESSING,240000,10;
+		specialeffect2 EF_ASSUMPTIO;
+		sc_start SC_ASSUMPTIO,240000,5;
+		specialeffect2 EF_GLORIA;
+		sc_start SC_GLORIA,240000,5;
 	}
 	if (.@Delay)
 		@HD = gettimetick(2) + .@Delay;
@@ -66,7 +70,7 @@ morocc,153,97,6	duplicate(Healer)	Healer#mor	909
 moscovia,220,191,4	duplicate(Healer)	Healer#mos	909
 niflheim,212,182,5	duplicate(Healer)	Healer#nif	909
 payon,179,106,4	duplicate(Healer)	Healer#pay	909
-prontera,162,193,4	duplicate(Healer)	Healer#prt	909
+prontera,162,193,4	duplicate(Healer)	Healer#prt	1388	// eXRo RPT-004 #2: hub healer sprite
 rachel,125,116,6	duplicate(Healer)	Healer#rac	909
 splendide,201,153,4	duplicate(Healer)	Healer#spl	909
 thor_camp,249,74,4	duplicate(Healer)	Healer#thor	909

@@ -147,3 +147,6 @@ prt_in,28,73,4	script	Wise Old Woman#eAcustom	78,{
 		close;
 	}
 }
+
+// eXRo (RPT-004 #10): plaza duplicate at the Prontera QoL hub.
+prontera,163,180,4	duplicate(Wise Old Woman#eAcustom)	Wise Old Woman#eAprt	78

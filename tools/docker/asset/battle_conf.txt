@@ -46,3 +46,25 @@ item_rate_card: 100
 item_rate_card_boss: 100
 item_rate_card_mvp: 100
 item_drop_card_min: 80
+
+// ------------------------------------------------------------------------
+//  Playtest bug sweep (RPT-004, 2026-09-11).
+// ------------------------------------------------------------------------
+
+// #14 Stat caps -> 255 for every class tier (was 99 / 130 / 130 / 130 / 110).
+// Keep www/lib/config/rates.ts in lockstep if it ever surfaces a stat cap.
+max_parameter: 255
+max_third_parameter: 255
+max_extended_parameter: 255
+max_fourth_parameter: 255
+max_trait_parameter: 255
+
+// #15 Fast casting under RENEWAL_CAST (this fork compiles it in).
+//  - vcast_stat_scale: the (DEX*2 + INT) total at which variable cast hits
+//    zero. Stock 530. Set to 300 so ~150 total DEX alone (150*2) = instant
+//    variable cast, matching the classic breakpoint the playtest expects.
+//  - default_fixed_castrate: 0 drops the 20%-of-cast default fixed portion
+//    (skills with an explicit fixed cast in skill_db.yml keep theirs).
+// Together: most skills cast instantly at 150 DEX, still scale below that.
+vcast_stat_scale: 300
+default_fixed_castrate: 0

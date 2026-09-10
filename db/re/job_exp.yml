@@ -636,7 +636,7 @@ Body:
       Baby_Soul_Reaper: true
       Star_Emperor2: true
       Baby_Star_Emperor2: true
-    MaxBaseLevel: 200
+    MaxBaseLevel: 275
     BaseExp:
       - Level: 1
         Exp: 658
@@ -1037,7 +1037,157 @@ Body:
       - Level: 199
         Exp: 651094164
       - Level: 200
-        Exp: 999999999
+        Exp: 653047446
+      - Level: 201
+        Exp: 655006588
+      - Level: 202
+        Exp: 656971607
+      - Level: 203
+        Exp: 658942521
+      - Level: 204
+        Exp: 660919348
+      - Level: 205
+        Exp: 662902106
+      - Level: 206
+        Exp: 664890812
+      - Level: 207
+        Exp: 666885484
+      - Level: 208
+        Exp: 668886140
+      - Level: 209
+        Exp: 670892798
+      - Level: 210
+        Exp: 672905476
+      - Level: 211
+        Exp: 674924192
+      - Level: 212
+        Exp: 676948964
+      - Level: 213
+        Exp: 678979810
+      - Level: 214
+        Exp: 681016749
+      - Level: 215
+        Exp: 683059799
+      - Level: 216
+        Exp: 685108978
+      - Level: 217
+        Exp: 687164304
+      - Level: 218
+        Exp: 689225796
+      - Level: 219
+        Exp: 691293473
+      - Level: 220
+        Exp: 788074559
+      - Level: 221
+        Exp: 898404997
+      - Level: 222
+        Exp: 1024181696
+      - Level: 223
+        Exp: 1167567133
+      - Level: 224
+        Exp: 1331026531
+      - Level: 225
+        Exp: 1517370245
+      - Level: 226
+        Exp: 1729802079
+      - Level: 227
+        Exp: 1971974370
+      - Level: 228
+        Exp: 2248050781
+      - Level: 229
+        Exp: 2562777890
+      - Level: 230
+        Exp: 2921566794
+      - Level: 231
+        Exp: 3330586145
+      - Level: 232
+        Exp: 3796868205
+      - Level: 233
+        Exp: 4328429753
+      - Level: 234
+        Exp: 4934409918
+      - Level: 235
+        Exp: 5625227306
+      - Level: 236
+        Exp: 6412759128
+      - Level: 237
+        Exp: 7310545405
+      - Level: 238
+        Exp: 8334021761
+      - Level: 239
+        Exp: 9500784807
+      - Level: 240
+        Exp: 10830894679
+      - Level: 241
+        Exp: 12347219934
+      - Level: 242
+        Exp: 14075830724
+      - Level: 243
+        Exp: 16046447025
+      - Level: 244
+        Exp: 18292949608
+      - Level: 245
+        Exp: 20853962553
+      - Level: 246
+        Exp: 23773517310
+      - Level: 247
+        Exp: 27101809733
+      - Level: 248
+        Exp: 30896063095
+      - Level: 249
+        Exp: 35221511928
+      - Level: 250
+        Exp: 43181573623
+      - Level: 251
+        Exp: 52940609261
+      - Level: 252
+        Exp: 64905186953
+      - Level: 253
+        Exp: 79573759204
+      - Level: 254
+        Exp: 97557428784
+      - Level: 255
+        Exp: 119605407689
+      - Level: 256
+        Exp: 146636229826
+      - Level: 257
+        Exp: 179776017766
+      - Level: 258
+        Exp: 220405397781
+      - Level: 259
+        Exp: 270217017679
+      - Level: 260
+        Exp: 283727868563
+      - Level: 261
+        Exp: 297914261991
+      - Level: 262
+        Exp: 312809975091
+      - Level: 263
+        Exp: 328450473845
+      - Level: 264
+        Exp: 344872997537
+      - Level: 265
+        Exp: 353494822476
+      - Level: 266
+        Exp: 362332193038
+      - Level: 267
+        Exp: 371390497864
+      - Level: 268
+        Exp: 380675260310
+      - Level: 269
+        Exp: 390192141818
+      - Level: 270
+        Exp: 397995984654
+      - Level: 271
+        Exp: 405955904348
+      - Level: 272
+        Exp: 414075022434
+      - Level: 273
+        Exp: 422356522883
+      - Level: 274
+        Exp: 430803653341
+      - Level: 275
+        Exp: 999999999999
   - Jobs:
       Dragon_Knight: true
       Meister: true
@@ -1619,7 +1769,7 @@ Body:
   - Jobs:
       Summoner: true
       Baby_Summoner: true
-    MaxBaseLevel: 200
+    MaxBaseLevel: 275
     BaseExp:
       - Level: 1
         Exp: 55
@@ -2020,7 +2170,157 @@ Body:
       - Level: 199
         Exp: 708463491
       - Level: 200
-        Exp: 999999999
+        Exp: 736802030
+      - Level: 201
+        Exp: 766274111
+      - Level: 202
+        Exp: 796925075
+      - Level: 203
+        Exp: 828802078
+      - Level: 204
+        Exp: 861954161
+      - Level: 205
+        Exp: 896432327
+      - Level: 206
+        Exp: 932289620
+      - Level: 207
+        Exp: 969581204
+      - Level: 208
+        Exp: 1008364452
+      - Level: 209
+        Exp: 1048699030
+      - Level: 210
+        Exp: 1090646991
+      - Level: 211
+        Exp: 1134272870
+      - Level: 212
+        Exp: 1179643784
+      - Level: 213
+        Exp: 1226829535
+      - Level: 214
+        Exp: 1275902716
+      - Level: 215
+        Exp: 1326938824
+      - Level: 216
+        Exp: 1380016376
+      - Level: 217
+        Exp: 1435217031
+      - Level: 218
+        Exp: 1492625712
+      - Level: 219
+        Exp: 1552330740
+      - Level: 220
+        Exp: 1614423969
+      - Level: 221
+        Exp: 1679000927
+      - Level: 222
+        Exp: 1746160964
+      - Level: 223
+        Exp: 1816007402
+      - Level: 224
+        Exp: 1888647698
+      - Level: 225
+        Exp: 1964193605
+      - Level: 226
+        Exp: 2042761349
+      - Level: 227
+        Exp: 2124471802
+      - Level: 228
+        Exp: 2209450674
+      - Level: 229
+        Exp: 2297828700
+      - Level: 230
+        Exp: 2389741848
+      - Level: 231
+        Exp: 2485331521
+      - Level: 232
+        Exp: 2584744781
+      - Level: 233
+        Exp: 2688134572
+      - Level: 234
+        Exp: 2795659954
+      - Level: 235
+        Exp: 2907486352
+      - Level: 236
+        Exp: 3023785806
+      - Level: 237
+        Exp: 3144737238
+      - Level: 238
+        Exp: 3270526727
+      - Level: 239
+        Exp: 3401347796
+      - Level: 240
+        Exp: 3537401707
+      - Level: 241
+        Exp: 3678897775
+      - Level: 242
+        Exp: 3826053686
+      - Level: 243
+        Exp: 3979095833
+      - Level: 244
+        Exp: 4138259666
+      - Level: 245
+        Exp: 4303790052
+      - Level: 246
+        Exp: 4475941654
+      - Level: 247
+        Exp: 4654979320
+      - Level: 248
+        Exp: 4841178492
+      - Level: 249
+        Exp: 5034825631
+      - Level: 250
+        Exp: 5236218656
+      - Level: 251
+        Exp: 5445667402
+      - Level: 252
+        Exp: 5663494098
+      - Level: 253
+        Exp: 5890033861
+      - Level: 254
+        Exp: 6125635215
+      - Level: 255
+        Exp: 6370660623
+      - Level: 256
+        Exp: 6625487047
+      - Level: 257
+        Exp: 6890506528
+      - Level: 258
+        Exp: 7166126789
+      - Level: 259
+        Exp: 7452771860
+      - Level: 260
+        Exp: 7750882734
+      - Level: 261
+        Exp: 8060918043
+      - Level: 262
+        Exp: 8383354764
+      - Level: 263
+        Exp: 8718688954
+      - Level: 264
+        Exp: 9067436512
+      - Level: 265
+        Exp: 9430133972
+      - Level: 266
+        Exp: 9807339330
+      - Level: 267
+        Exp: 10199632903
+      - Level: 268
+        Exp: 10607618219
+      - Level: 269
+        Exp: 11031922947
+      - Level: 270
+        Exp: 11473199864
+      - Level: 271
+        Exp: 11932127858
+      - Level: 272
+        Exp: 12409412972
+      - Level: 273
+        Exp: 12905789490
+      - Level: 274
+        Exp: 13422021069
+      - Level: 275
+        Exp: 999999999999
   - Jobs:
       Novice: true
       Baby: true
@@ -2812,7 +3112,7 @@ Body:
       Hyper_Novice: true
       Spirit_Handler: true
       Sky_Emperor2: true
-    MaxJobLevel: 60
+    MaxJobLevel: 70
     JobExp:
       - Level: 1
         Exp: 4700000
@@ -2933,6 +3233,26 @@ Body:
       - Level: 59
         Exp: 13194183036
       - Level: 60
+        Exp: 15173310491
+      - Level: 61
+        Exp: 17449307064
+      - Level: 62
+        Exp: 20066703124
+      - Level: 63
+        Exp: 23076708593
+      - Level: 64
+        Exp: 26538214881
+      - Level: 65
+        Exp: 30518947113
+      - Level: 66
+        Exp: 35096789180
+      - Level: 67
+        Exp: 40361307557
+      - Level: 68
+        Exp: 46415503690
+      - Level: 69
+        Exp: 53377829244
+      - Level: 70
         Exp: 99999999999
   - Jobs:
       Gunslinger: true
