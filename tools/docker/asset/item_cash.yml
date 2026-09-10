@@ -1,0 +1,71 @@
+# eXRo — Cash Shop catalog  (PLAN-018 Phase D / D2)
+# ---------------------------------------------------------------------------
+# Tracked asset. Mounted over /rathena/db/import/item_cash.yml by run-nopod.sh
+# / run-prod.sh / docker-compose.AIO.yaml (db/import/ is gitignored upstream —
+# same pattern as conf/import/, see .claude/kbase/architecture/rathena.md).
+#
+# Sold for #CASHPOINTS (donation points; www /donate credits them).
+#
+# NO PAY-TO-WIN. Every row is checked against the written rule in
+# .claude/work/active/PLAN-018-PHASE-D-LOG.md ("D2 — the no-P2W rule"):
+#   1. no exclusive power (stat / card / refine-safe gear / bonus)
+#   2. no refine/enchant/grade-material shortcut past the in-game path
+#   3. no consumable that beats stock (stock buff items are fine)
+#   4. utility / convenience / cosmetic only
+#   5. costumes: unlimited
+# Growing this list = re-check every add against that rule. It is content,
+# not code.
+#
+# Tabs available: New, Hot, Limited, Rental, Permanent, Scrolls,
+#                 Consumables, Other, Sale.
+# ---------------------------------------------------------------------------
+
+Header:
+  Type: ITEM_CASH_DB
+  Version: 1
+
+Body:
+  # Stock buff consumables — already obtainable in-game / the coin shop.
+  # Convenience, not power (rule 3).
+  - Tab: Consumables
+    Items:
+      - Item: Battle_Manual
+        Price: 3
+      - Item: Bubble_Gum
+        Price: 3
+      - Item: Comp_Battle_Manual
+        Price: 8
+      - Item: Comp_Bubble_Gum
+        Price: 8
+      - Item: Guyak_Pudding
+        Price: 2
+      - Item: Guarana_Candy
+        Price: 2
+
+  # Pure utility / fun (rule 4).
+  - Tab: Scrolls
+    Items:
+      - Item: Convex_Mirror
+        Price: 1
+      - Item: Megaphone_
+        Price: 1
+
+  # Convenience (rule 4) — storage-anywhere pass, death-penalty insurance.
+  - Tab: Other
+    Items:
+      - Item: Kafra_Card
+        Price: 2
+      - Item: Insurance
+        Price: 5
+
+  # Costumes (rule 5 — unlimited). E6 bulk-imports every costume variant in the
+  # submodule + regenerates the flat item tables; after that lands, add real
+  # costume AegisNames here (one `- Item:` / `Price:` pair each). Left empty on
+  # purpose — do not guess names.
+  # - Tab: Permanent
+  #   Items:
+  #     - Item: <Costume_AegisName>
+  #       Price: <CP>
+#
+# No Footer/Imports: this file IS db/import/item_cash.yml (mounted over it).
+# The stock db/item_cash.yml already imports this path.

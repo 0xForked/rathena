@@ -1,0 +1,79 @@
+//===== eXRo Script ==========================================
+//= Fitting Room — Costume Mirror  (PLAN-018 Phase D / D6a)
+//===== Description: =========================================
+//= Try any headgear / garment look for free before you buy or
+//= convert it. Preview only — nothing enters your inventory.
+//=
+//= ponytail: the plan called for a separate preview map so
+//= players don't parade previews around town. A plaza NPC with
+//= a self-restoring preview is smaller and has no map / mapflag
+//= / stranding surface. setlook broadcasts, so other clients may
+//= briefly see the preview until it resets — acceptable for a
+//= mirror in the services plaza. Add the room later only if
+//= show-off previews actually become a nuisance.
+//=
+//= Restore: the NPC restores your real look on close. If you
+//= relog mid-preview the stuck look clears on your next map
+//= change (equipment looks are re-sent on map load).
+//============================================================
+
+prontera,164,185,4	script	Costume Mirror	4_F_KAFRA1,{
+	// snapshot the real looks for this session
+	.@r_top = getlook(LOOK_HEAD_TOP);
+	.@r_mid = getlook(LOOK_HEAD_MID);
+	.@r_bot = getlook(LOOK_HEAD_BOTTOM);
+	.@r_rob = getlook(LOOK_ROBE);
+
+	mes "[Costume Mirror]";
+	mes "Give me an item ID and I'll show you the look — no charge, nothing kept.";
+
+	while (1) {
+		next;
+		switch (select("Preview an item by ID", "Reset my look", "Done")) {
+		case 1:
+			mes "[Costume Mirror]";
+			mes "Which item ID?";
+			next;
+			input .@id, 0, 2147483647;
+			if (.@id < 1) { mes "[Costume Mirror]"; mes "Never mind, then."; continue; }
+
+			.@view = getiteminfo(.@id, ITEMINFO_VIEW);
+			.@loc  = getiteminfo(.@id, ITEMINFO_LOCATIONS);
+			if (.@view <= 0 || .@loc <= 0) {
+				mes "[Costume Mirror]";
+				mes "That's not a wearable item with a look.";
+				continue;
+			}
+			if (.@loc & EQP_HEAD_TOP)       setlook LOOK_HEAD_TOP, .@view;
+			else if (.@loc & EQP_HEAD_MID)  setlook LOOK_HEAD_MID, .@view;
+			else if (.@loc & EQP_HEAD_LOW)  setlook LOOK_HEAD_BOTTOM, .@view;
+			else if (.@loc & EQP_GARMENT)   setlook LOOK_ROBE, .@view;
+			else {
+				mes "[Costume Mirror]";
+				mes "I can only mirror headgear and garments.";
+				continue;
+			}
+			mes "[Costume Mirror]";
+			mes "There you are — ^0055FF" + getitemname(.@id) + "^000000.";
+			mes "Pick another, or Reset when you're done.";
+			continue;
+
+		case 2:
+			setlook LOOK_HEAD_TOP, .@r_top;
+			setlook LOOK_HEAD_MID, .@r_mid;
+			setlook LOOK_HEAD_BOTTOM, .@r_bot;
+			setlook LOOK_ROBE, .@r_rob;
+			mes "[Costume Mirror]";
+			mes "Back to your own gear. Try another?";
+			continue;
+
+		case 3:
+			setlook LOOK_HEAD_TOP, .@r_top;
+			setlook LOOK_HEAD_MID, .@r_mid;
+			setlook LOOK_HEAD_BOTTOM, .@r_bot;
+			setlook LOOK_ROBE, .@r_rob;
+			close;
+		}
+	}
+	end;
+}

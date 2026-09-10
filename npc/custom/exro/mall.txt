@@ -1,0 +1,141 @@
+//===== eXRo Script ==========================================
+//= Equipment Mall  (PLAN-018 Phase D / D4)
+//===== Description: =========================================
+//= A curated ZENY SINK. Reads the www-owned www_mall_catalog
+//= table via query_sql (one shared MariaDB, ADR-0003) and sells
+//= the enabled, job-appropriate rows for zeny.
+//=
+//= Map-server half of D4 — a clickable NPC now; the ExroMall
+//= client window (D4c) will drive the same reads/buy later.
+//=
+//= Money-safe ordering (same direction as zenysinks.txt /
+//= market.txt): Zeny is debited on the CHARACTER first, THEN
+//= getitem (or RODEX if the stack would overweight). A crash
+//= between the two costs the buyer the zeny, never a dupe.
+//=
+//= job_mask (one INT on the catalog row):
+//=   0            -> everyone
+//=   else bitmask over the six 1st-job archetypes, matched
+//=   against the buyer's BaseJob (advanced classes collapse to
+//=   their root; Novice/SNovice/Taekwon/Doram = 0, see only
+//=   job_mask = 0 rows):
+//=     Swordman 1  Mage 2  Archer 4  Acolyte 8  Merchant 16  Thief 32
+//===== Column contract (must match www/db/schema.sql) =======
+//= www_mall_catalog: id, item_id, category, price_zeny (BIGINT),
+//=   job_mask (INT), qty_per_buy, enabled (TINYINT), sort (INT)
+//============================================================
+
+prontera,162,185,4	script	Equipment Mall	4_F_04,{
+	mes "[Equipment Mall]";
+	mes "Curated gear and supplies, priced in zeny.";
+	next;
+
+	// buyer's 1st-job archetype bit
+	.@bit =
+		(BaseJob == Job_Swordman) ? 1 :
+		(BaseJob == Job_Mage)     ? 2 :
+		(BaseJob == Job_Archer)   ? 4 :
+		(BaseJob == Job_Acolyte)  ? 8 :
+		(BaseJob == Job_Merchant) ? 16 :
+		(BaseJob == Job_Thief)    ? 32 : 0;
+	.@jobclause$ = " AND (job_mask = 0" + ((.@bit) ? " OR (job_mask & " + .@bit + ") <> 0" : "") + ")";
+
+	.@cat$ = "";
+	switch (select(
+		"Everything",
+		"Weapons", "Armor", "Cards", "Consumables", "Costumes", "Etc",
+		"Leave")) {
+	case 2: .@cat$ = "weapon"; break;
+	case 3: .@cat$ = "armor"; break;
+	case 4: .@cat$ = "card"; break;
+	case 5: .@cat$ = "consumable"; break;
+	case 6: .@cat$ = "costume"; break;
+	case 7: .@cat$ = "etc"; break;
+	case 8: close;
+	}
+
+	.@page = 0;
+	while (1) {
+		.@where$ = "enabled = 1" + .@jobclause$;
+		if (.@cat$ != "")
+			.@where$ += " AND category = '" + escape_sql(.@cat$) + "'";
+		.@n = query_sql(
+			"SELECT id, item_id, price_zeny, qty_per_buy FROM `www_mall_catalog` "
+			+ "WHERE " + .@where$ + " ORDER BY sort ASC, id ASC LIMIT 8 OFFSET " + (.@page * 8),
+			.@row_id, .@iid, .@pz, .@qpb);
+		if (.@n < 1) {
+			mes "[Equipment Mall]";
+			mes((.@page == 0) ? "Nothing in that section for your class yet." : "No more items.");
+			close;
+		}
+		.@menu$ = "";
+		for (.@i = 0; .@i < .@n; ++.@i) {
+			.@nm$ = getitemname(.@iid[.@i]);
+			if (.@nm$ == "null") .@nm$ = "Item #" + .@iid[.@i] + " (missing)";
+			.@menu$ += .@nm$ + " x" + .@qpb[.@i] + " - " + .@pz[.@i] + "z:";
+		}
+		.@menu$ += "> Next page:< Back";
+		.@s = select(.@menu$);
+		if (.@s == .@n + 1) { ++.@page; continue; }
+		if (.@s == .@n + 2) { if (.@page == 0) close; --.@page; continue; }
+
+		.@p = .@s - 1;
+		callsub S_Buy, .@row_id[.@p], .@bit;
+		close;
+	}
+
+// getarg: 0 catalog row id, 1 buyer job bit
+S_Buy:
+	.@row_id = getarg(0);
+	.@bit    = getarg(1);
+
+	// re-read the row FRESH and re-check enabled + job at buy time
+	.@n = query_sql(
+		"SELECT item_id, price_zeny, qty_per_buy, category FROM `www_mall_catalog` "
+		+ "WHERE id = " + .@row_id + " AND enabled = 1 "
+		+ "AND (job_mask = 0" + ((.@bit) ? " OR (job_mask & " + .@bit + ") <> 0" : "") + ")",
+		.@iid, .@pz, .@qpb, .@cat$);
+	if (.@n < 1) {
+		mes "[Equipment Mall]";
+		mes "That item just went off the shelf.";
+		return;
+	}
+	if (getitemname(.@iid[0]) == "null") {
+		mes "[Equipment Mall]";
+		mes "Catalog points at an item that isn't in this build. Tell staff.";
+		return;
+	}
+
+	mes "[Equipment Mall]";
+	mes "^0055FF" + getitemname(.@iid[0]) + "^000000";
+	mes "Pack size: " + .@qpb[0] + "   Price: ^0055FF" + .@pz[0] + "z^000000 per pack";
+	mes "How many packs?";
+	next;
+	input .@packs, 0, 99;
+	if (.@packs < 1) { mes "[Equipment Mall]"; mes "Cancelled."; return; }
+
+	.@cost  = .@pz[0] * .@packs;
+	.@total = .@qpb[0] * .@packs;
+	if (Zeny < .@cost) {
+		mes "[Equipment Mall]";
+		mes "That's " + .@cost + "z — you don't have it.";
+		return;
+	}
+
+	// debit FIRST (safe direction); deliver after
+	Zeny -= .@cost;
+	if (checkweight(.@iid[0], .@total)) {
+		getitem .@iid[0], .@total;
+		mes "[Equipment Mall]";
+		mes "Sold — " + .@total + "x " + getitemname(.@iid[0]) + ". Pleasure doing business.";
+	} else {
+		setarray .@m_id[0],  .@iid[0];
+		setarray .@m_amt[0], .@total;
+		mail getcharid(0), "eXRo Mall", "Equipment Mall order",
+			"Too heavy to hand over in person — here's your " + getitemname(.@iid[0]) + ".",
+			0, .@m_id, .@m_amt;
+		mes "[Equipment Mall]";
+		mes "You were over weight, so I sent it to your ^0055FFRODEX^000000 instead.";
+	}
+	return;
+}

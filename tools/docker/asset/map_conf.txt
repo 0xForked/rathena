@@ -10,3 +10,8 @@ passwd: exro_dev
 // eXRo MOTD (PLAN-015). Content lives in conf/import/motd_exro.txt so the stock
 // conf/motd.txt is never edited.
 motd_txt: conf/import/motd_exro.txt
+
+// eXRo channels (PLAN-018 D6b). Overrides map_athena.conf's
+// `channel_conf: conf/channels.conf`. The file is the whole channel_config
+// block (rAthena does not merge it) — #main auto-join + #map auto-join.
+channel_conf: conf/import/channels_exro.conf
