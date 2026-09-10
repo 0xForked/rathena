@@ -1,0 +1,80 @@
+//===== eXRo Script ==========================================
+//= Private Training Ground — donor perk  (PLAN-018 Phase E / E3)
+//===== Description: =========================================
+//= A quiet `noexp` room with respawning dummies for build /
+//= rotation / MVP-timing practice. Entry is gated on having
+//= supported the server.
+//=
+//= Gate: lifetime Cash Points CREDITED (not current balance) via
+//=   query_sql SUM(delta > 0) on www_cashpoint_ledger for the
+//=   account. www credits #CASHPOINTS on every confirmed donation
+//=   and appends a positive ledger row, so this is a real
+//=   "has donated >= threshold" check with NO www<-game write.
+//=   .@threshold = 500 CP (~ US$5 at the base rate).
+//=
+//= ponytail: the plan said "instanced". A gated shared `noexp`
+//= room is the same player value without the instance_db + a
+//= dedicated map asset. Upgrade to instance_create() later if
+//= two donors training at once is actually a problem. The map is
+//= guild_vs4 (empty, no warps lead there; guild_vs3 is Chaos Hour).
+//=
+//= "Borrowed gear" (plan E3) not shipped this pass — the room +
+//= the gate are the core. Add a rentitem loadout NPC later.
+//============================================================
+
+prontera,152,183,4	script	Training Ground	4_M_JOB_KNIGHT2,{
+	.@threshold = 500;
+	mes "[Training Ground]";
+	mes "A private room with respawning dummies and no EXP —";
+	mes "for supporters, to practice without wrecking your level curve.";
+	next;
+
+	.@n = query_sql("SELECT COALESCE(SUM(delta),0) FROM `www_cashpoint_ledger` "
+		+ "WHERE account_id = " + getcharid(3) + " AND delta > 0", .@life);
+	.@lifetime = (.@n > 0) ? .@life[0] : 0;
+
+	if (.@lifetime < .@threshold) {
+		mes "[Training Ground]";
+		mes "This one's for supporters — lifetime ^0055FF" + .@threshold + " Cash Points^000000 or more.";
+		mes "You're at ^0055FF" + .@lifetime + "^000000. Thanks for considering it either way.";
+		close;
+	}
+
+	mes "[Training Ground]";
+	mes "Supporter — go on in. ^777777(No EXP inside. Exit NPC by the entrance.)^000000";
+	next;
+	if (select("Enter", "Not now") == 2)
+		close;
+	warp "guild_vs4", 50, 50;
+	end;
+
+OnInit:
+	// room mapflags — no EXP, no save/return/teleport so nobody is stranded
+	setmapflag "guild_vs4", mf_noexp;
+	setmapflag "guild_vs4", mf_nosave, "prontera";
+	setmapflag "guild_vs4", mf_noreturn;
+	setmapflag "guild_vs4", mf_noteleport;
+	setmapflag "guild_vs4", mf_nowarpto;
+	setmapflag "guild_vs4", mf_nopenalty;
+
+	// respawning dummies: low + mid tiers for rotation practice
+	monster "guild_vs4", 0, 0, "Training Dummy", 1002, 12, strnpcinfo(0) + "::OnDummy";   // Poring
+	monster "guild_vs4", 0, 0, "Training Dummy", 1113, 8,  strnpcinfo(0) + "::OnDummy";   // Drops
+	monster "guild_vs4", 0, 0, "Sturdy Dummy",   1036, 4,  strnpcinfo(0) + "::OnDummy";   // Yoyo
+	monster "guild_vs4", 0, 0, "Sturdy Dummy",   1258, 2,  strnpcinfo(0) + "::OnDummy";   // Choco
+	end;
+
+OnDummy:
+	// keep the population constant
+	monster "guild_vs4", 0, 0, "Training Dummy", 1002, 1, strnpcinfo(0) + "::OnDummy";
+	end;
+}
+
+guild_vs4,50,53,4	script	Leave Training	4_M_JOB_KNIGHT2,{
+	mes "[Leave Training]";
+	mes "Back to Prontera?";
+	next;
+	if (select("Yes", "Stay") == 1)
+		warp "prontera", 152, 181;
+	close;
+}

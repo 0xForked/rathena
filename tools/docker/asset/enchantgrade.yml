@@ -1,0 +1,19 @@
+# eXRo — Grade Enhancement tuning  (PLAN-018 Phase E / E1)
+# ---------------------------------------------------------------------------
+# Tracked asset. Mounted over /rathena/db/import/enchantgrade.yml by
+# run-nopod.sh / run-prod.sh / docker-compose.AIO.yaml. db/import/ is
+# gitignored upstream (same pattern as conf/import/).
+#
+# The stock db/re/enchantgrade.yml carries the full grade table (chances,
+# catalysts, cost options). This file OVERRIDES entries by (Type, Level, Grade).
+# Empty Body for now — the shipped rates apply. Tuning success chances / cost
+# items for eXRo's economy is a launch-week curation task; add overriding
+# `- Type: ... Levels: ...` blocks here, they merge over the stock table.
+#
+# No Footer/Imports: this file IS db/import/enchantgrade.yml (mounted over it).
+# The stock db/enchantgrade.yml already imports this path.
+# ---------------------------------------------------------------------------
+
+Header:
+  Type: ENCHANTGRADE_DB
+  Version: 3

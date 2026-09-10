@@ -1,0 +1,58 @@
+//===== eXRo Script ==========================================
+//= Headgear Exchange  (PLAN-018 Phase E / E2)
+//===== Description: =========================================
+//= A points-shop paying headgear + costumes for the PLAN-016
+//= earned currencies (#ACTIVITYCOIN time-tick, #EXROCOIN daily
+//= quest) plus a zeny cost.
+//=
+//= ponytail: the roadmap said "enable Euphy's quest_shop.txt".
+//= That script is a 400-line vendored config engine and supports
+//= only ONE point currency; a 60-line eXRo NPC that takes both
+//= coins is the smaller change. quest_shop.txt stays disabled.
+//=
+//= Curated list — grow it as a content task. Item ids verified
+//= against db/re/item_db_equip.yml (2026-09-10).
+//============================================================
+
+prontera,170,183,4	script	Headgear Exchange	4_F_JOB_HUNTER,{
+	mes "[Headgear Exchange]";
+	mes "Spend what you've earned. ^0055FFAC^000000 = Activity Coin, ^0055FFEC^000000 = eXRo Coin.";
+	mes "You have ^0055FF" + #ACTIVITYCOIN + " AC^000000 / ^0055FF" + #EXROCOIN + " EC^000000.";
+	next;
+
+	//        name                         id     zeny    AC  EC
+	setarray .@nm$[0],
+		"Poring Hat (costume)",
+		"Angeling Hat (costume)",
+		"Drooping Kitty (costume)",
+		"Rabbit Ear Hat (costume)",
+		"Wings of Victory (costume)",
+		"Deviling Hat (costume)";
+	setarray .@id[0],   19828, 19845, 19779, 19872, 19706, 19724;
+	setarray .@zeny[0], 50000, 80000, 60000, 60000, 120000, 150000;
+	setarray .@ac[0],   10,    20,    12,    12,    0,      0;
+	setarray .@ec[0],    0,     0,     0,     0,    5,      8;
+
+	.@menu$ = "";
+	for (.@i = 0; .@i < getarraysize(.@id); ++.@i)
+		.@menu$ += .@nm$[.@i] + " - " + .@zeny[.@i] + "z"
+			+ ((.@ac[.@i]) ? " + " + .@ac[.@i] + "AC" : "")
+			+ ((.@ec[.@i]) ? " + " + .@ec[.@i] + "EC" : "") + ":";
+	.@menu$ += "Leave";
+	.@p = select(.@menu$) - 1;
+	if (.@p >= getarraysize(.@id))
+		close;
+
+	if (Zeny < .@zeny[.@p])          { mes "[Headgear Exchange]"; mes "Not enough zeny."; close; }
+	if (#ACTIVITYCOIN < .@ac[.@p])   { mes "[Headgear Exchange]"; mes "Not enough Activity Coin."; close; }
+	if (#EXROCOIN < .@ec[.@p])       { mes "[Headgear Exchange]"; mes "Not enough eXRo Coin."; close; }
+	if (!checkweight(.@id[.@p], 1))  { mes "[Headgear Exchange]"; mes "You're carrying too much."; close; }
+
+	Zeny         -= .@zeny[.@p];
+	#ACTIVITYCOIN -= .@ac[.@p];
+	#EXROCOIN     -= .@ec[.@p];      // all debited before delivery (no refund path)
+	getitem .@id[.@p], 1;
+	mes "[Headgear Exchange]";
+	mes "Enjoy.";
+	close;
+}

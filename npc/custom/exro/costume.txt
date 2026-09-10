@@ -1,0 +1,84 @@
+//===== eXRo Script ==========================================
+//= Wardrobe — costume access  (PLAN-018 Phase E / E6)
+//===== Description: =========================================
+//= The fork's item_db already ships ~3,500 costume-slot items
+//= (AegisName prefix `C_`, Locations Costume_Head_*/Costume_Garment).
+//= This NPC is the F2P route to them: a curated starter list plus
+//= "give me costume #<id>" for anything else, priced in
+//= #ACTIVITYCOIN + zeny.
+//=
+//= NOT shipped: a "turn my equipped hat into a costume" converter.
+//= This fork has no `costume` script command and costume items are
+//= NOT 1:1 name-mapped to their normal twins, so a runtime convert
+//= needs either that command (a rAthena rebuild) or a generated
+//= normal-id -> C_-id mapping table (a data task). Deferred; the
+//= vendor covers costume access for launch.
+//=
+//= After adding costume rows the operator should regenerate the
+//= flat English item tables (assets/gen-item-tables.py via
+//= build-english-overlay.sh) so names/icons render in /play.
+//=
+//= Starter ids verified against db/re/item_db_equip.yml (2026-09-10).
+//============================================================
+
+prontera,168,183,4	script	Wardrobe	4_F_JOB_BLACKSMITH,{
+	.@fee_zeny = 100000;
+	.@fee_coin = 5;      // #ACTIVITYCOIN per costume
+
+	mes "[Wardrobe]";
+	mes "Costumes are looks only — no stats, no slot conflict with your gear.";
+	mes "Each is ^0055FF" + .@fee_zeny + "z + " + .@fee_coin + " Activity Coin^000000.";
+	next;
+
+	.@c = select("Pick from the popular list", "I know the costume ID", "Leave");
+	if (.@c == 3)
+		close;
+
+	if (.@c == 1) {
+		setarray .@id[0],   19828, 19845, 19724, 19779, 19706, 19872;
+		setarray .@nm$[0],  "Poring Hat", "Angeling Hat", "Deviling Hat",
+		                    "Drooping Kitty", "Wings of Victory", "Rabbit Ear Hat";
+		.@menu$ = "";
+		for (.@i = 0; .@i < getarraysize(.@id); ++.@i)
+			.@menu$ += .@nm$[.@i] + ":";
+		.@p = select(.@menu$) - 1;
+		.@want = .@id[.@p];
+	} else {
+		mes "[Wardrobe]";
+		mes "Costume item ID? (look it up on the website item database)";
+		next;
+		input .@want, 0, 2147483647;
+		if (.@want < 1) { mes "[Wardrobe]"; mes "Cancelled."; close; }
+		// must be a real, costume-slotted item
+		.@loc = getiteminfo(.@want, ITEMINFO_LOCATIONS);
+		if (.@loc <= 0) {
+			mes "[Wardrobe]";
+			mes "No such item.";
+			close;
+		}
+		if (!(.@loc & EQP_COSTUME_HEAD_TOP) && !(.@loc & EQP_COSTUME_HEAD_MID)
+		 && !(.@loc & EQP_COSTUME_HEAD_LOW) && !(.@loc & EQP_COSTUME_GARMENT)) {
+			mes "[Wardrobe]";
+			mes "^0055FF" + getitemname(.@want) + "^000000 isn't a costume item.";
+			mes "Costume IDs are the ones that sit in a costume slot.";
+			close;
+		}
+	}
+
+	mes "[Wardrobe]";
+	mes "^0055FF" + getitemname(.@want) + "^000000 for " + .@fee_zeny + "z + " + .@fee_coin + " Activity Coin?";
+	next;
+	if (select("Yes", "No") == 2)
+		close;
+
+	if (Zeny < .@fee_zeny) { mes "[Wardrobe]"; mes "Not enough zeny."; close; }
+	if (#ACTIVITYCOIN < .@fee_coin) { mes "[Wardrobe]"; mes "Not enough Activity Coin — earn them by playing."; close; }
+	if (!checkweight(.@want, 1)) { mes "[Wardrobe]"; mes "You're carrying too much."; close; }
+
+	Zeny -= .@fee_zeny;
+	#ACTIVITYCOIN -= .@fee_coin;   // both debited before delivery (no refund path)
+	getitem .@want, 1;
+	mes "[Wardrobe]";
+	mes "Wear it well.";
+	close;
+}

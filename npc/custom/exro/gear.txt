@@ -1,0 +1,105 @@
+//===== eXRo Script ==========================================
+//= Grade Station + Grade Supplies  (PLAN-018 Phase E / E1, E7)
+//===== Description: =========================================
+//= Grade Enhancement front end. `feature.enchantgrade: on` is set
+//= in tools/docker/asset/battle_conf.txt; the stock EnchantGrade
+//= client UI does the work. This NPC just opens it and sells the
+//= consumables that feed it.
+//=
+//=   Grade Station  — enchantgradeui; (opens the grade window)
+//=   Grade Supplies — Blacksmith Blessing / Enriched & HD ore /
+//=                    Carnium / Bradium, priced in zeny +
+//=                    #ACTIVITYCOIN (another sink for the PLAN-016
+//=                    earned currency).
+//=
+//= Also here (E7): the eXRo reward-box opener. The boxes are
+//= db/import/item_group_db.yml (asset). A box item given by other
+//= scripts / events calls `getgroupitem <group>`.
+//=
+//= Item ids verified against db/re/item_db_etc.yml (2026-09-10):
+//=   Blacksmith Blessing 6635  Enriched Elu 7619  Enriched Ori 7620
+//=   HD Elunium 6241  HD Oridecon 6240  Carnium 6223  Bradium 6224
+//============================================================
+
+prontera,146,187,4	script	Grade Station	4_M_REPAIR,{
+	mes "[Grade Station]";
+	mes "Grade Enhancement pushes gear past +10 into letter grades (D-A).";
+	mes "Bring the item, the fee, and the nerve.";
+	next;
+	if (select("Open the grade window", "Leave") == 2)
+		close;
+	enchantgradeui;
+	close;
+}
+
+prontera,144,187,4	script	Grade Supplies#exro	4_M_ALCHE_A,{
+	mes "[Grade Supplies]";
+	mes "Everything you need to feed the grade window.";
+	mes " Zeny + ^0055FF#ACTIVITYCOIN^000000 (earned by playing).";
+	next;
+	.@c = select(
+		"Blacksmith Blessing - 200,000z + 2 coin",
+		"Enriched Oridecon - 60,000z + 1 coin",
+		"Enriched Elunium - 60,000z + 1 coin",
+		"HD Oridecon - 120,000z + 2 coin",
+		"HD Elunium - 120,000z + 2 coin",
+		"Carnium - 150,000z + 2 coin",
+		"Bradium - 150,000z + 2 coin",
+		"Leave");
+	if (.@c == 8)
+		close;
+
+	setarray .@id[1],   6635, 7620, 7619, 6240, 6241, 6223, 6224;
+	setarray .@zeny[1], 200000, 60000, 60000, 120000, 120000, 150000, 150000;
+	setarray .@coin[1], 2, 1, 1, 2, 2, 2, 2;
+	.@iid = .@id[.@c];  .@z = .@zeny[.@c];  .@k = .@coin[.@c];
+
+	if (Zeny < .@z) {
+		mes "[Grade Supplies]";
+		mes "That's " + .@z + "z. Come back when you have it.";
+		close;
+	}
+	if (#ACTIVITYCOIN < .@k) {
+		mes "[Grade Supplies]";
+		mes "You need " + .@k + " Activity Coin. Earn them by playing.";
+		close;
+	}
+	if (!checkweight(.@iid, 1)) {
+		mes "[Grade Supplies]";
+		mes "You're carrying too much.";
+		close;
+	}
+	Zeny -= .@z;
+	#ACTIVITYCOIN -= .@k;    // debit both before delivery (no refund path)
+	getitem .@iid, 1;
+	mes "[Grade Supplies]";
+	mes "There you go. Grade responsibly.";
+	close;
+}
+
+//= E7 — reward-box roller. A custom item_group would need a C++ constant, so
+//= the pools are rolled IN SCRIPT instead. Call from an event / quest / a box
+//= item's Script:  callfunc "F_ExroBox", <pool>;
+//=   pool 0  IG_ExroDailyCache  — small: consumables + a little zeny
+//=   pool 1  IG_ExroEventCrate  — event: grade supplies, coins, gacha boxes
+//= Weights are the array index spread (equal-weight per listed row; repeat a
+//= row to weight it up). delitem of the box happens in the caller.
+function	script	F_ExroBox	{
+	.@pool = getarg(0);
+	if (.@pool == 0) {
+		setarray .@id[0], 504, 505, 601, 656, 607, 645;   // white/blue pot, fly wing, awake, ygg berry, center
+		setarray .@amt[0], 30, 15, 30, 10, 3, 15;
+		.@r = rand(getarraysize(.@id));
+		getitem .@id[.@r], .@amt[.@r];
+		Zeny += 20000;
+		return;
+	}
+	// pool 1 — event crate
+	setarray .@id[0], 6635, 7620, 7619, 6240, 6241, 603, 617, 12210;  // BS blessing, enriched ori/elu, HD ori/elu, OBB, OVB, bubble gum
+	setarray .@amt[0], 2, 3, 3, 2, 2, 3, 1, 2;
+	.@r = rand(getarraysize(.@id));
+	getitem .@id[.@r], .@amt[.@r];
+	if (rand(100) < 30)
+		#ACTIVITYCOIN += 2;
+	return;
+}
