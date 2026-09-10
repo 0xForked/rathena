@@ -1,50 +1,91 @@
 //===== eXRo Script ==========================================
-//= Equipment Mall  (PLAN-018 Phase D / D4)
+//= Equipment Mall + client bridge  (PLAN-018 Phase D / D4, D4c)
 //===== Description: =========================================
-//= A curated ZENY SINK. Reads the www-owned www_mall_catalog
-//= table via query_sql (one shared MariaDB, ADR-0003) and sells
-//= the enabled, job-appropriate rows for zeny.
+//= A curated ZENY SINK over the www-owned www_mall_catalog table
+//= (query_sql, ADR-0003). Two front ends, one buy path:
 //=
-//= Map-server half of D4 — a clickable NPC now; the ExroMall
-//= client window (D4c) will drive the same reads/buy later.
+//=   * `Equipment Mall` NPC (prontera,162,185) — clickable menu.
+//=   * `exro_mall_bridge` floating NPC — `bindatcmd "exml"`. The
+//=     eXRo client window (src/UI/Components/ExroMall) sends
+//=     "@exml <nonce> <op> <args>" and reads the dispbottom TSV
+//=     reply (EXRO<TAB><nonce><TAB>ROW|END|ERR<TAB>...), same
+//=     protocol as market_client.txt.
 //=
-//= Money-safe ordering (same direction as zenysinks.txt /
-//= market.txt): Zeny is debited on the CHARACTER first, THEN
-//= getitem (or RODEX if the stack would overweight). A crash
-//= between the two costs the buyer the zeny, never a dupe.
+//= Money-safe ordering (same direction as zenysinks.txt): Zeny is
+//= debited on the CHARACTER first, THEN getitem (RODEX if the
+//= stack would overweight). A crash between costs the buyer the
+//= zeny, never a dupe.
 //=
-//= job_mask (one INT on the catalog row):
-//=   0            -> everyone
-//=   else bitmask over the six 1st-job archetypes, matched
-//=   against the buyer's BaseJob (advanced classes collapse to
-//=   their root; Novice/SNovice/Taekwon/Doram = 0, see only
-//=   job_mask = 0 rows):
-//=     Swordman 1  Mage 2  Archer 4  Acolyte 8  Merchant 16  Thief 32
+//= job_mask (one INT on the catalog row): 0 -> everyone; else a
+//= bitmask over the six 1st-job archetypes matched against BaseJob
+//= (Swordman 1 / Mage 2 / Archer 4 / Acolyte 8 / Merchant 16 /
+//= Thief 32; advanced classes collapse to their root; Novice /
+//= SNovice / Taekwon / Doram = 0, see only job_mask = 0 rows).
 //===== Column contract (must match www/db/schema.sql) =======
 //= www_mall_catalog: id, item_id, category, price_zeny (BIGINT),
 //=   job_mask (INT), qty_per_buy, enabled (TINYINT), sort (INT)
 //============================================================
 
-prontera,162,185,4	script	Equipment Mall	4_F_04,{
-	mes "[Equipment Mall]";
-	mes "Curated gear and supplies, priced in zeny.";
-	next;
-
-	// buyer's 1st-job archetype bit
-	.@bit =
+// buyer job archetype bit for the current (attached) player
+function	script	F_ExroJobBit	{
+	return
 		(BaseJob == Job_Swordman) ? 1 :
 		(BaseJob == Job_Mage)     ? 2 :
 		(BaseJob == Job_Archer)   ? 4 :
 		(BaseJob == Job_Acolyte)  ? 8 :
 		(BaseJob == Job_Merchant) ? 16 :
 		(BaseJob == Job_Thief)    ? 32 : 0;
+}
+
+// Shared buy path. Returns "OK" or a short reason. mes-free.
+// args: getarg(0) catalog row id, getarg(1) pack count (1..99), getarg(2) job bit
+function	script	F_ExroMallBuy	{
+	.@row_id = getarg(0);
+	.@packs  = getarg(1);
+	.@bit    = getarg(2);
+	if (.@packs < 1 || .@packs > 99)
+		return "bad quantity";
+
+	.@n = query_sql(
+		"SELECT item_id, price_zeny, qty_per_buy FROM `www_mall_catalog` "
+		+ "WHERE id = " + .@row_id + " AND enabled = 1 "
+		+ "AND (job_mask = 0" + ((.@bit) ? " OR (job_mask & " + .@bit + ") <> 0" : "") + ")",
+		.@iid, .@pz, .@qpb);
+	if (.@n < 1)
+		return "not available";
+	if (getitemname(.@iid[0]) == "null")
+		return "catalog item missing";
+
+	.@cost  = .@pz[0] * .@packs;
+	.@total = .@qpb[0] * .@packs;
+	if (Zeny < .@cost)
+		return "need " + .@cost + "z";
+
+	Zeny -= .@cost;   // debit FIRST
+	if (checkweight(.@iid[0], .@total)) {
+		getitem .@iid[0], .@total;
+	} else {
+		setarray .@m_id[0], .@iid[0];
+		setarray .@m_amt[0], .@total;
+		mail getcharid(0), "eXRo Mall", "Equipment Mall order",
+			"Too heavy to hand over in person — here's your " + getitemname(.@iid[0]) + ".",
+			0, .@m_id, .@m_amt;
+	}
+	return "OK";
+}
+
+// ---------------------------------------------------------------------------
+// Clickable NPC
+// ---------------------------------------------------------------------------
+prontera,162,185,4	script	Equipment Mall	4_F_04,{
+	mes "[Equipment Mall]";
+	mes "Curated gear and supplies, priced in zeny.";
+	next;
+	.@bit = callfunc("F_ExroJobBit");
 	.@jobclause$ = " AND (job_mask = 0" + ((.@bit) ? " OR (job_mask & " + .@bit + ") <> 0" : "") + ")";
 
 	.@cat$ = "";
-	switch (select(
-		"Everything",
-		"Weapons", "Armor", "Cards", "Consumables", "Costumes", "Etc",
-		"Leave")) {
+	switch (select("Everything", "Weapons", "Armor", "Cards", "Consumables", "Costumes", "Etc", "Leave")) {
 	case 2: .@cat$ = "weapon"; break;
 	case 3: .@cat$ = "armor"; break;
 	case 4: .@cat$ = "card"; break;
@@ -57,8 +98,7 @@ prontera,162,185,4	script	Equipment Mall	4_F_04,{
 	.@page = 0;
 	while (1) {
 		.@where$ = "enabled = 1" + .@jobclause$;
-		if (.@cat$ != "")
-			.@where$ += " AND category = '" + escape_sql(.@cat$) + "'";
+		if (.@cat$ != "") .@where$ += " AND category = '" + escape_sql(.@cat$) + "'";
 		.@n = query_sql(
 			"SELECT id, item_id, price_zeny, qty_per_buy FROM `www_mall_catalog` "
 			+ "WHERE " + .@where$ + " ORDER BY sort ASC, id ASC LIMIT 8 OFFSET " + (.@page * 8),
@@ -78,64 +118,74 @@ prontera,162,185,4	script	Equipment Mall	4_F_04,{
 		.@s = select(.@menu$);
 		if (.@s == .@n + 1) { ++.@page; continue; }
 		if (.@s == .@n + 2) { if (.@page == 0) close; --.@page; continue; }
-
 		.@p = .@s - 1;
-		callsub S_Buy, .@row_id[.@p], .@bit;
+
+		mes "[Equipment Mall]";
+		mes "^0055FF" + getitemname(.@iid[.@p]) + "^000000";
+		mes "Pack size: " + .@qpb[.@p] + "   Price: ^0055FF" + .@pz[.@p] + "z^000000 per pack";
+		mes "How many packs?";
+		next;
+		input .@packs, 0, 99;
+		if (.@packs < 1) { mes "[Equipment Mall]"; mes "Cancelled."; close; }
+
+		.@r$ = callfunc("F_ExroMallBuy", .@row_id[.@p], .@packs, .@bit);
+		mes "[Equipment Mall]";
+		if (.@r$ == "OK") mes "Sold. Check your pack" + ((checkweight(.@iid[.@p], 1)) ? "." : " / RODEX.");
+		else mes "Couldn't sell that: ^777777" + .@r$ + "^000000.";
 		close;
 	}
+}
 
-// getarg: 0 catalog row id, 1 buyer job bit
-S_Buy:
-	.@row_id = getarg(0);
-	.@bit    = getarg(1);
+// ---------------------------------------------------------------------------
+// Client bridge — bindatcmd "exml".
+// params: [0] nonce  [1] op  [2..] op args
+// ---------------------------------------------------------------------------
+-	script	exro_mall_bridge	-1,{
+	end;
 
-	// re-read the row FRESH and re-check enabled + job at buy time
-	.@n = query_sql(
-		"SELECT item_id, price_zeny, qty_per_buy, category FROM `www_mall_catalog` "
-		+ "WHERE id = " + .@row_id + " AND enabled = 1 "
-		+ "AND (job_mask = 0" + ((.@bit) ? " OR (job_mask & " + .@bit + ") <> 0" : "") + ")",
-		.@iid, .@pz, .@qpb, .@cat$);
-	if (.@n < 1) {
-		mes "[Equipment Mall]";
-		mes "That item just went off the shelf.";
-		return;
+OnInit:
+	bindatcmd "exml", strnpcinfo(3) + "::OnCmd", 0, 99;
+	end;
+
+OnCmd:
+	if (.@atcmd_numparameters < 2) {
+		dispbottom "EXRO\t0\tERR\tbad request";
+		end;
 	}
-	if (getitemname(.@iid[0]) == "null") {
-		mes "[Equipment Mall]";
-		mes "Catalog points at an item that isn't in this build. Tell staff.";
-		return;
+	.@nonce$ = .@atcmd_parameters$[0];
+	.@op$    = .@atcmd_parameters$[1];
+	.@bit    = callfunc("F_ExroJobBit");
+
+	if (.@op$ == "browse") {
+		.@cat$  = .@atcmd_parameters$[2];
+		.@page  = atoi(.@atcmd_parameters$[3]);
+		.@where$ = "enabled = 1 AND (job_mask = 0"
+			+ ((.@bit) ? " OR (job_mask & " + .@bit + ") <> 0" : "") + ")";
+		if (.@cat$ != "" && .@cat$ != "-")
+			.@where$ += " AND category = '" + escape_sql(.@cat$) + "'";
+		.@n = query_sql(
+			"SELECT id, item_id, price_zeny, qty_per_buy FROM `www_mall_catalog` "
+			+ "WHERE " + .@where$ + " ORDER BY sort ASC, id ASC LIMIT 8 OFFSET " + (.@page * 8),
+			.@id, .@iid, .@pz, .@qpb);
+		for (.@i = 0; .@i < .@n; ++.@i) {
+			.@nm$ = getitemname(.@iid[.@i]);
+			if (.@nm$ == "null") .@nm$ = "Item #" + .@iid[.@i];
+			dispbottom "EXRO\t" + .@nonce$ + "\tROW\t" + .@id[.@i] + "\t" + .@nm$
+				+ "\t" + .@qpb[.@i] + "\t" + .@pz[.@i];
+		}
+		dispbottom "EXRO\t" + .@nonce$ + "\tEND\tbrowse";
+		end;
 	}
 
-	mes "[Equipment Mall]";
-	mes "^0055FF" + getitemname(.@iid[0]) + "^000000";
-	mes "Pack size: " + .@qpb[0] + "   Price: ^0055FF" + .@pz[0] + "z^000000 per pack";
-	mes "How many packs?";
-	next;
-	input .@packs, 0, 99;
-	if (.@packs < 1) { mes "[Equipment Mall]"; mes "Cancelled."; return; }
-
-	.@cost  = .@pz[0] * .@packs;
-	.@total = .@qpb[0] * .@packs;
-	if (Zeny < .@cost) {
-		mes "[Equipment Mall]";
-		mes "That's " + .@cost + "z — you don't have it.";
-		return;
+	if (.@op$ == "buy") {
+		.@row_id = atoi(.@atcmd_parameters$[2]);
+		.@packs  = atoi(.@atcmd_parameters$[3]);
+		.@r$ = callfunc("F_ExroMallBuy", .@row_id, .@packs, .@bit);
+		if (.@r$ == "OK") dispbottom "EXRO\t" + .@nonce$ + "\tEND\tbuy";
+		else              dispbottom "EXRO\t" + .@nonce$ + "\tERR\t" + .@r$;
+		end;
 	}
 
-	// debit FIRST (safe direction); deliver after
-	Zeny -= .@cost;
-	if (checkweight(.@iid[0], .@total)) {
-		getitem .@iid[0], .@total;
-		mes "[Equipment Mall]";
-		mes "Sold — " + .@total + "x " + getitemname(.@iid[0]) + ". Pleasure doing business.";
-	} else {
-		setarray .@m_id[0],  .@iid[0];
-		setarray .@m_amt[0], .@total;
-		mail getcharid(0), "eXRo Mall", "Equipment Mall order",
-			"Too heavy to hand over in person — here's your " + getitemname(.@iid[0]) + ".",
-			0, .@m_id, .@m_amt;
-		mes "[Equipment Mall]";
-		mes "You were over weight, so I sent it to your ^0055FFRODEX^000000 instead.";
-	}
-	return;
+	dispbottom "EXRO\t" + .@nonce$ + "\tERR\tunknown op";
+	end;
 }

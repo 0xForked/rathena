@@ -1,183 +1,80 @@
 //===== eXRo Script ==========================================
-//= Market Kiosk  (PLAN-018 Phase D / D3)
+//= Market Kiosk + client bridge  (PLAN-018 Phase D / D3, D3c)
 //===== Description: =========================================
 //= In-game browse + buy over the same www_market_* tables the
-//= website /market uses. This is the map-server half of D3 —
-//= a clickable NPC now; the ExroMarket client window (D3c) will
-//= drive the SAME subcommands once its transport is designed
-//= (see .claude/work/active/PLAN-018-PHASE-D-LOG.md).
+//= website /market uses. Two front ends, one money path:
 //=
-//= The website buyListing (ADR-0011) is ONE InnoDB transaction
-//= across www_* + mail and stays the canonical settlement path.
-//= query_sql autocommits every call, so this NPC cannot hold a
-//= cross-statement transaction. It uses the same money-safe
-//= ORDERING instead:
+//=   * `Market Kiosk` NPC  (prontera,158,185) — clickable menu.
+//=   * `exro_market_bridge` floating NPC — `bindatcmd "exmk"`.
+//=     The eXRo client window (src/UI/Components/ExroMarket) sends
+//=     "@exmk <nonce> <op> <args>" as chat; this NPC replies with
+//=     dispbottom TSV lines the window's exroBridge.js parses:
+//=         EXRO<TAB><nonce><TAB>ROW<TAB><f0><TAB><f1>...
+//=         EXRO<TAB><nonce><TAB>END<TAB><op>
+//=         EXRO<TAB><nonce><TAB>ERR<TAB><reason>
+//=     dispbottom -> ZC_NOTIFY_PLAYERCHAT (0x8e); the window
+//=     swallows EXRO-prefixed lines so they never hit the chatbox.
+//=
+//= Settlement: the website buyListing (ONE InnoDB tx, ADR-0011)
+//= stays canonical. This script cannot hold a cross-statement
+//= transaction (query_sql autocommits), so F_ExroMktBuy uses the
+//= same money-safe ORDERING:
 //=   1. atomic claim   UPDATE ... status='sold' WHERE status='active'
-//=                     + SELECT ROW_COUNT() == 1  (exactly one winner)
-//=   2. escrow == null -> unclaim, abort, nothing charged
+//=                     + SELECT ROW_COUNT() == 1   (one winner)
+//=   2. escrow == null -> roll back to 'active', abort, nothing charged
 //=   3. guarded debit  UPDATE wallet ... WHERE zeny_balance >= price
-//=                     + SELECT ROW_COUNT() == 1  (never below zero)
-//=   4. credit seller, write ledgers + www_market_orders (status 'paid')
-//=   5. RODEX the escrow stack to the buyer  -> status 'delivered'
-//=   On any failure before step 3 succeeds the listing is rolled
-//=   back to 'active' (S_Unclaim) and no zeny has moved.
+//=                     + SELECT ROW_COUNT() == 1   (never below zero)
+//=   4. buyer ledger, seller credit + ledger, www_market_orders ('paid')
+//=   5. RODEX the escrow stack -> orders/listings 'delivered'
 //=
-//= CEILING (document in kbase/MODULES.md): a map-server crash
-//= between the debit (step 3) and the RODEX (step 5) costs the
-//= buyer the zeny without delivering the item. The website path
-//= has no such window. Accepted per PLAN-018 Risk #1 — the
-//= website + Market Broker remain canonical; this is convenience.
-//=
-//= ROW_COUNT() assumption: rAthena runs every query_sql() call on
-//= one persistent handle, sequentially, so SELECT ROW_COUNT()
-//= immediately after an UPDATE returns that UPDATE's affected-row
-//= count. D9 ship-check must confirm this on the live build
-//= (two clients buy one listing -> exactly one wins).
+//= CEILING (kbase/MODULES.md): a crash between step 3 and step 5
+//= costs the buyer the zeny without delivering. The website tx has
+//= no such window. Accepted per PLAN-018 Risk #1.
+//= ROW_COUNT() assumption: rAthena runs every query_sql() call
+//= sequentially on one persistent handle, so SELECT ROW_COUNT()
+//= right after an UPDATE returns its affected-row count. D9 must
+//= confirm on the live build (two clients buy one listing -> one wins).
 //===== Column contract (must match www/db/schema.sql) =======
 //= www_market_listings: id, account_id, seller_name, name, category,
-//=   qty, price, currency, status
-//=   status touched here: active -> sold -> delivered  (+ rollback to active)
-//= www_market_escrow:   listing_id, nameid, amount, refine, attribute,
-//=   identify, card0..3, option_id/val/parm 0..4, enchantgrade, bound
+//=   qty, price, currency, status  (active -> sold -> delivered / rollback)
+//= www_market_escrow:   listing_id, nameid, amount, refine, identify,
+//=   card0..3, option_id/val/parm 0..4
 //= www_market_wallet:        account_id, zeny_balance
 //= www_market_wallet_ledger: id, account_id, delta, reason, ref, balance_after
 //= www_market_orders: id, listing_id, buyer_account_id, buyer_char_id,
 //=   buyer_name, seller_account_id, price, fee, net_to_seller, status
 //============================================================
 
-prontera,158,185,4	script	Market Kiosk	4_M_04,{
-	mes "[Market Kiosk]";
-	mes "Browse and buy from the eXRo market without leaving town.";
-	mes "Zeny comes from your ^0055FFmarket wallet^000000 — top it up at the";
-	mes "Market Broker or on the website.";
-	next;
-	switch (select(
-		"Browse listings",
-		"My market wallet",
-		"My listings",
-		"My recent orders",
-		"Leave")) {
-	case 1: callsub S_Browse; close;
-	case 2: callsub S_Wallet;  close;
-	case 3: callsub S_MyListings; close;
-	case 4: callsub S_MyOrders;   close;
-	case 5: close;
-	}
-	end;
+// ---------------------------------------------------------------------------
+// Shared money path. Returns "OK" on success, else a short human reason.
+// mes-free (both front ends render the result their own way).
+// args: getarg(0) listing id (string), getarg(1) buyer account id,
+//       getarg(2) buyer char id, getarg(3) buyer name (for the order row)
+// ---------------------------------------------------------------------------
+function	script	F_ExroMktBuy	{
+	.@lid$      = getarg(0);
+	.@buyer_aid = getarg(1);
+	.@buyer_cid = getarg(2);
+	.@buyer_nm$ = getarg(3);
 
-// ----------------------------------------------------------
-// Browse active, escrow-backed listings; pick one; buy it.
-// ----------------------------------------------------------
-S_Browse:
-	.@cat$ = "";
-	switch (select(
-		"All categories",
-		"Weapons", "Armor", "Cards", "Consumables", "Costumes", "Etc")) {
-	case 2: .@cat$ = "weapon"; break;
-	case 3: .@cat$ = "armor"; break;
-	case 4: .@cat$ = "card"; break;
-	case 5: .@cat$ = "consumable"; break;
-	case 6: .@cat$ = "costume"; break;
-	case 7: .@cat$ = "etc"; break;
-	}
-
-	.@page = 0;
-	while (1) {
-		.@where$ = "l.status = 'active' AND e.listing_id IS NOT NULL";
-		if (.@cat$ != "")
-			.@where$ += " AND l.category = '" + escape_sql(.@cat$) + "'";
-		.@off = .@page * 8;
-		.@n = query_sql(
-			"SELECT l.id, l.name, l.qty, l.price, l.seller_name "
-			+ "FROM `www_market_listings` l "
-			+ "JOIN `www_market_escrow` e ON e.listing_id = l.id "
-			+ "WHERE " + .@where$ + " "
-			+ "ORDER BY l.created_at DESC LIMIT 8 OFFSET " + .@off,
-			.@lid$, .@lname$, .@lqty, .@lprice, .@lseller$);
-		if (.@n < 1) {
-			mes "[Market Kiosk]";
-			mes((.@page == 0) ? "Nothing is listed in that category right now."
-			                  : "No more listings.");
-			return;
-		}
-		.@menu$ = "";
-		for (.@i = 0; .@i < .@n; ++.@i)
-			.@menu$ += .@lname$[.@i] + " x" + .@lqty[.@i]
-				+ " - " + .@lprice[.@i] + "z (" + .@lseller$[.@i] + "):";
-		.@menu$ += "> Next page:< Back";
-		.@s = select(.@menu$);
-		if (.@s == .@n + 1) { ++.@page; continue; }
-		if (.@s == .@n + 2) { if (.@page == 0) return; --.@page; continue; }
-
-		.@p = .@s - 1;
-		callsub S_Detail, .@lid$[.@p], .@lname$[.@p], .@lqty[.@p], .@lprice[.@p], .@lseller$[.@p];
-		return;
-	}
-
-// getarg: 0 listing id, 1 name, 2 qty, 3 price, 4 seller
-S_Detail:
-	.@lid$    = getarg(0);
-	.@iname$  = getarg(1);
-	.@iqty    = getarg(2);
-	.@iprice  = getarg(3);
-	.@iseller$ = getarg(4);
-
-	query_sql("SELECT zeny_balance FROM `www_market_wallet` WHERE account_id = "
-		+ getcharid(3), .@bal);
-	.@have = (getarraysize(.@bal)) ? .@bal[0] : 0;
-
-	mes "[Market Kiosk]";
-	mes "^0055FF" + .@iname$ + "^000000  x" + .@iqty;
-	mes "Price: ^0055FF" + .@iprice + "z^000000";
-	mes "Seller: " + .@iseller$;
-	mes "Your market wallet: ^0055FF" + .@have + "z^000000";
-	next;
-	if (.@have < .@iprice) {
-		mes "[Market Kiosk]";
-		mes "Your market wallet is short. Top up first.";
-		return;
-	}
-	if (select("Buy it", "Back") == 2)
-		return;
-
-	callsub S_Buy, .@lid$;
-	return;
-
-// ----------------------------------------------------------
-// The money path. getarg(0) = listing id.
-// ----------------------------------------------------------
-S_Buy:
-	.@lid$ = getarg(0);
-	.@buyer_aid = getcharid(3);
-	.@buyer_cid = getcharid(0);
-
-	// 1. ATOMIC CLAIM — active -> sold, exactly one winner
+	// 1. atomic claim
 	query_sql("UPDATE `www_market_listings` SET status = 'sold', updated_at = NOW() "
 		+ "WHERE id = '" + escape_sql(.@lid$) + "' AND status = 'active'");
 	query_sql("SELECT ROW_COUNT()", .@aff);
-	if (.@aff[0] != 1) {
-		mes "[Market Kiosk]";
-		mes "Someone just bought that, or the seller pulled it.";
-		mes "Nothing was charged.";
-		return;
-	}
-	// From here: any early exit MUST callsub S_Unclaim before returning.
+	if (.@aff[0] != 1)
+		return "already sold or pulled";
 
-	// 2. read price + seller off the now-claimed row
-	query_sql("SELECT price, account_id, seller_name, name FROM `www_market_listings` "
-		+ "WHERE id = '" + escape_sql(.@lid$) + "'",
-		.@price, .@seller_aid, .@seller_name$, .@iname$);
+	// 2. price + seller off the claimed row
+	query_sql("SELECT price, account_id, name FROM `www_market_listings` "
+		+ "WHERE id = '" + escape_sql(.@lid$) + "'", .@price, .@seller_aid, .@iname$);
 	if (getarraysize(.@price) < 1 || .@price[0] < 1) {
-		callsub S_Unclaim, .@lid$;
-		mes "[Market Kiosk]";
-		mes "That listing looks wrong. Nothing was charged.";
-		return;
+		callfunc "F_ExroMktUnclaim", .@lid$;
+		return "listing data error";
 	}
 
-	// 3. escrow row = TRUTH for what the buyer receives. None -> abort.
+	// 3. escrow row = what the buyer receives
 	.@has_esc = query_sql(
-		"SELECT nameid, amount, refine, identify, "
-		+ "card0, card1, card2, card3, "
+		"SELECT nameid, amount, refine, identify, card0, card1, card2, card3, "
 		+ "option_id0, option_val0, option_parm0, option_id1, option_val1, option_parm1, "
 		+ "option_id2, option_val2, option_parm2, option_id3, option_val3, option_parm3, "
 		+ "option_id4, option_val4, option_parm4 "
@@ -188,31 +85,25 @@ S_Buy:
 		.@e_oi2, .@e_ov2, .@e_op2, .@e_oi3, .@e_ov3, .@e_op3,
 		.@e_oi4, .@e_ov4, .@e_op4);
 	if (.@has_esc < 1) {
-		callsub S_Unclaim, .@lid$;
-		mes "[Market Kiosk]";
-		mes "That listing has no item attached. Nothing was charged.";
-		return;
+		callfunc "F_ExroMktUnclaim", .@lid$;
+		return "no item attached";
 	}
 
-	// 4. GUARDED DEBIT — never below zero
+	// 4. guarded debit
 	query_sql("UPDATE `www_market_wallet` SET zeny_balance = zeny_balance - " + .@price[0]
 		+ " WHERE account_id = " + .@buyer_aid + " AND zeny_balance >= " + .@price[0]);
 	query_sql("SELECT ROW_COUNT()", .@aff);
 	if (.@aff[0] != 1) {
-		callsub S_Unclaim, .@lid$;
-		mes "[Market Kiosk]";
-		mes "Your market wallet is short " + .@price[0] + "z. Nothing was charged.";
-		return;
+		callfunc "F_ExroMktUnclaim", .@lid$;
+		return "market wallet short " + .@price[0] + "z";
 	}
-	// Past this point the buyer HAS paid — no more S_Unclaim, we deliver.
+	// paid — deliver from here, no more rollback
 
-	// 5. buyer ledger
+	// 5. ledgers + seller credit + order row
 	query_sql("SELECT zeny_balance FROM `www_market_wallet` WHERE account_id = " + .@buyer_aid, .@bbal);
 	query_sql("INSERT INTO `www_market_wallet_ledger` (id, account_id, delta, reason, ref, balance_after) "
 		+ "VALUES (UUID(), " + .@buyer_aid + ", -" + .@price[0] + ", 'Market Kiosk buy', '"
 		+ escape_sql(.@lid$) + "', " + .@bbal[0] + ")");
-
-	// 6. credit the seller (fee 0 this plan, net == price)
 	query_sql("INSERT INTO `www_market_wallet` (account_id, zeny_balance) VALUES ("
 		+ .@seller_aid[0] + ", " + .@price[0] + ") "
 		+ "ON DUPLICATE KEY UPDATE zeny_balance = zeny_balance + " + .@price[0]);
@@ -220,15 +111,13 @@ S_Buy:
 	query_sql("INSERT INTO `www_market_wallet_ledger` (id, account_id, delta, reason, ref, balance_after) "
 		+ "VALUES (UUID(), " + .@seller_aid[0] + ", " + .@price[0] + ", 'Market Kiosk sale', '"
 		+ escape_sql(.@lid$) + "', " + .@sbal[0] + ")");
-
-	// 7. order row
 	query_sql("INSERT INTO `www_market_orders` "
 		+ "(id, listing_id, buyer_account_id, buyer_char_id, buyer_name, seller_account_id, "
 		+ "price, fee, net_to_seller, status) VALUES (UUID(), '" + escape_sql(.@lid$) + "', "
-		+ .@buyer_aid + ", " + .@buyer_cid + ", '" + escape_sql(strcharinfo(0)) + "', "
+		+ .@buyer_aid + ", " + .@buyer_cid + ", '" + escape_sql(.@buyer_nm$) + "', "
 		+ .@seller_aid[0] + ", " + .@price[0] + ", 0, " + .@price[0] + ", 'paid')");
 
-	// 8. deliver the escrow stack by RODEX to the buyer's current char
+	// 6. RODEX the escrow stack to the buyer
 	setarray .@m_id[0],  .@e_id[0];
 	setarray .@m_amt[0], .@e_amt[0];
 	setarray .@m_ref[0], .@e_ref[0];
@@ -242,60 +131,198 @@ S_Buy:
 	setarray .@m_oi2[0], .@e_oi2[0];  setarray .@m_ov2[0], .@e_ov2[0];  setarray .@m_op2[0], .@e_op2[0];
 	setarray .@m_oi3[0], .@e_oi3[0];  setarray .@m_ov3[0], .@e_ov3[0];  setarray .@m_op3[0], .@e_op3[0];
 	setarray .@m_oi4[0], .@e_oi4[0];  setarray .@m_ov4[0], .@e_ov4[0];  setarray .@m_op4[0], .@e_op4[0];
-	mail .@buyer_cid, "eXRo Market",
-		"Market purchase",
+	mail .@buyer_cid, "eXRo Market", "Market purchase",
 		"Your purchase from the eXRo market: " + .@iname$[0] + ". Thanks for trading!",
-		0,
-		.@m_id, .@m_amt, .@m_ref, .@m_bnd,
+		0, .@m_id, .@m_amt, .@m_ref, .@m_bnd,
 		.@m_c0, .@m_c1, .@m_c2, .@m_c3,
 		.@m_oi0, .@m_ov0, .@m_op0, .@m_oi1, .@m_ov1, .@m_op1,
 		.@m_oi2, .@m_ov2, .@m_op2, .@m_oi3, .@m_ov3, .@m_op3,
 		.@m_oi4, .@m_ov4, .@m_op4;
 
-	// 9. finalise state
+	// 7. finalise
 	query_sql("UPDATE `www_market_orders` SET status = 'delivered', updated_at = NOW() "
 		+ "WHERE listing_id = '" + escape_sql(.@lid$) + "' AND buyer_account_id = " + .@buyer_aid);
 	query_sql("UPDATE `www_market_listings` SET status = 'delivered', updated_at = NOW() "
 		+ "WHERE id = '" + escape_sql(.@lid$) + "'");
+	return "OK";
+}
 
-	mes "[Market Kiosk]";
-	mes "Bought ^0055FF" + .@iname$[0] + "^000000 for ^0055FF" + .@price[0] + "z^000000.";
-	mes "It's waiting in your ^0055FFRODEX^000000 mailbox.";
-	return;
-
-// Roll a claimed-but-unpaid listing back so it can be bought again.
-S_Unclaim:
+// roll a claimed-but-unpaid listing back so it can be bought again
+function	script	F_ExroMktUnclaim	{
 	query_sql("UPDATE `www_market_listings` SET status = 'active', updated_at = NOW() "
 		+ "WHERE id = '" + escape_sql(getarg(0)) + "' AND status = 'sold'");
 	return;
+}
 
-// ----------------------------------------------------------
-S_Wallet:
-	query_sql("SELECT zeny_balance FROM `www_market_wallet` WHERE account_id = " + getcharid(3), .@bal);
+// ---------------------------------------------------------------------------
+// Clickable NPC
+// ---------------------------------------------------------------------------
+prontera,158,185,4	script	Market Kiosk	4_M_04,{
 	mes "[Market Kiosk]";
-	mes "Market wallet: ^0055FF" + ((getarraysize(.@bal)) ? .@bal[0] : 0) + "z^000000.";
-	mes "Top up at the ^0055FFMarket Broker^000000 (here in the plaza) or on the website.";
-	mes "Withdrawals are website-only — ^0055FFAccount > Market^000000.";
-	return;
+	mes "Browse and buy from the eXRo market without leaving town.";
+	mes "Zeny comes from your ^0055FFmarket wallet^000000 — top it up at the";
+	mes "Market Broker or on the website.";
+	next;
+	switch (select("Browse listings", "My market wallet", "My listings", "My recent orders", "Leave")) {
+	case 1: callsub S_Browse; close;
+	case 2:
+		query_sql("SELECT zeny_balance FROM `www_market_wallet` WHERE account_id = " + getcharid(3), .@bal);
+		mes "[Market Kiosk]";
+		mes "Market wallet: ^0055FF" + ((getarraysize(.@bal)) ? .@bal[0] : 0) + "z^000000.";
+		mes "Top up at the ^0055FFMarket Broker^000000 or on the website; withdrawals are website-only.";
+		close;
+	case 3:
+		.@n = query_sql("SELECT name, qty, price, status FROM `www_market_listings` "
+			+ "WHERE account_id = " + getcharid(3) + " ORDER BY created_at DESC LIMIT 20",
+			.@nm$, .@q, .@p, .@st$);
+		mes "[Market Kiosk]";
+		if (.@n < 1) mes "You have no listings.";
+		for (.@i = 0; .@i < .@n; ++.@i)
+			mes " - " + .@nm$[.@i] + " x" + .@q[.@i] + " @ " + .@p[.@i] + "z  ^777777[" + .@st$[.@i] + "]^000000";
+		close;
+	case 4:
+		.@n = query_sql("SELECT o.price, o.status, l.name FROM `www_market_orders` o "
+			+ "LEFT JOIN `www_market_listings` l ON l.id = o.listing_id "
+			+ "WHERE o.buyer_account_id = " + getcharid(3) + " ORDER BY o.created_at DESC LIMIT 20",
+			.@p, .@st$, .@nm$);
+		mes "[Market Kiosk]";
+		if (.@n < 1) mes "You have no orders yet.";
+		for (.@i = 0; .@i < .@n; ++.@i)
+			mes " - " + .@nm$[.@i] + "  " + .@p[.@i] + "z  ^777777[" + .@st$[.@i] + "]^000000";
+		close;
+	case 5: close;
+	}
+	end;
 
-S_MyListings:
-	.@n = query_sql("SELECT name, qty, price, status FROM `www_market_listings` "
-		+ "WHERE account_id = " + getcharid(3) + " ORDER BY created_at DESC LIMIT 20",
-		.@name$, .@qty, .@price, .@status$);
-	mes "[Market Kiosk]";
-	if (.@n < 1) { mes "You have no listings."; return; }
-	for (.@i = 0; .@i < .@n; ++.@i)
-		mes " - " + .@name$[.@i] + " x" + .@qty[.@i] + " @ " + .@price[.@i] + "z  ^777777[" + .@status$[.@i] + "]^000000";
-	return;
+S_Browse:
+	.@cat$ = "";
+	switch (select("All categories", "Weapons", "Armor", "Cards", "Consumables", "Costumes", "Etc")) {
+	case 2: .@cat$ = "weapon"; break;
+	case 3: .@cat$ = "armor"; break;
+	case 4: .@cat$ = "card"; break;
+	case 5: .@cat$ = "consumable"; break;
+	case 6: .@cat$ = "costume"; break;
+	case 7: .@cat$ = "etc"; break;
+	}
+	.@page = 0;
+	while (1) {
+		.@where$ = "l.status = 'active' AND e.listing_id IS NOT NULL";
+		if (.@cat$ != "") .@where$ += " AND l.category = '" + escape_sql(.@cat$) + "'";
+		.@n = query_sql(
+			"SELECT l.id, l.name, l.qty, l.price, l.seller_name FROM `www_market_listings` l "
+			+ "JOIN `www_market_escrow` e ON e.listing_id = l.id "
+			+ "WHERE " + .@where$ + " ORDER BY l.created_at DESC LIMIT 8 OFFSET " + (.@page * 8),
+			.@lid$, .@lname$, .@lqty, .@lprice, .@lseller$);
+		if (.@n < 1) {
+			mes "[Market Kiosk]";
+			mes((.@page == 0) ? "Nothing is listed in that category right now." : "No more listings.");
+			return;
+		}
+		.@menu$ = "";
+		for (.@i = 0; .@i < .@n; ++.@i)
+			.@menu$ += .@lname$[.@i] + " x" + .@lqty[.@i] + " - " + .@lprice[.@i] + "z (" + .@lseller$[.@i] + "):";
+		.@menu$ += "> Next page:< Back";
+		.@s = select(.@menu$);
+		if (.@s == .@n + 1) { ++.@page; continue; }
+		if (.@s == .@n + 2) { if (.@page == 0) return; --.@page; continue; }
+		.@p = .@s - 1;
 
-S_MyOrders:
-	.@n = query_sql("SELECT o.price, o.status, l.name FROM `www_market_orders` o "
-		+ "LEFT JOIN `www_market_listings` l ON l.id = o.listing_id "
-		+ "WHERE o.buyer_account_id = " + getcharid(3) + " ORDER BY o.created_at DESC LIMIT 20",
-		.@price, .@status$, .@name$);
-	mes "[Market Kiosk]";
-	if (.@n < 1) { mes "You have no orders yet."; return; }
-	for (.@i = 0; .@i < .@n; ++.@i)
-		mes " - " + .@name$[.@i] + "  " + .@price[.@i] + "z  ^777777[" + .@status$[.@i] + "]^000000";
-	return;
+		query_sql("SELECT zeny_balance FROM `www_market_wallet` WHERE account_id = " + getcharid(3), .@bal);
+		.@have = (getarraysize(.@bal)) ? .@bal[0] : 0;
+		mes "[Market Kiosk]";
+		mes "^0055FF" + .@lname$[.@p] + "^000000 x" + .@lqty[.@p];
+		mes "Price: ^0055FF" + .@lprice[.@p] + "z^000000   Seller: " + .@lseller$[.@p];
+		mes "Your market wallet: ^0055FF" + .@have + "z^000000";
+		next;
+		if (.@have < .@lprice[.@p]) { mes "[Market Kiosk]"; mes "Your market wallet is short."; return; }
+		if (select("Buy it", "Back") == 2) return;
+
+		.@r$ = callfunc("F_ExroMktBuy", .@lid$[.@p], getcharid(3), getcharid(0), strcharinfo(0));
+		mes "[Market Kiosk]";
+		if (.@r$ == "OK") {
+			mes "Bought ^0055FF" + .@lname$[.@p] + "^000000. It's in your ^0055FFRODEX^000000 mailbox.";
+		} else {
+			mes "Couldn't buy that: ^777777" + .@r$ + "^000000. Nothing was charged.";
+		}
+		return;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Client bridge — bindatcmd "exmk". Emits the EXRO TSV protocol via dispbottom.
+// params: [0] nonce  [1] op  [2..] op args
+// ---------------------------------------------------------------------------
+-	script	exro_market_bridge	-1,{
+	end;
+
+OnInit:
+	bindatcmd "exmk", strnpcinfo(3) + "::OnCmd", 0, 99;
+	end;
+
+OnCmd:
+	if (.@atcmd_numparameters < 2) {
+		dispbottom "EXRO\t0\tERR\tbad request";
+		end;
+	}
+	.@nonce$ = .@atcmd_parameters$[0];
+	.@op$    = .@atcmd_parameters$[1];
+	.@aid    = getcharid(3);
+
+	if (.@op$ == "browse") {
+		.@cat$  = .@atcmd_parameters$[2];
+		.@page  = atoi(.@atcmd_parameters$[3]);
+		.@where$ = "l.status = 'active' AND e.listing_id IS NOT NULL";
+		if (.@cat$ != "" && .@cat$ != "-")
+			.@where$ += " AND l.category = '" + escape_sql(.@cat$) + "'";
+		.@n = query_sql(
+			"SELECT l.id, l.name, l.qty, l.price, l.seller_name FROM `www_market_listings` l "
+			+ "JOIN `www_market_escrow` e ON e.listing_id = l.id "
+			+ "WHERE " + .@where$ + " ORDER BY l.created_at DESC LIMIT 8 OFFSET " + (.@page * 8),
+			.@id$, .@nm$, .@q, .@pr, .@sl$);
+		for (.@i = 0; .@i < .@n; ++.@i)
+			dispbottom "EXRO\t" + .@nonce$ + "\tROW\t" + .@id$[.@i] + "\t" + .@nm$[.@i]
+				+ "\t" + .@q[.@i] + "\t" + .@pr[.@i] + "\t" + .@sl$[.@i];
+		dispbottom "EXRO\t" + .@nonce$ + "\tEND\tbrowse";
+		end;
+	}
+
+	if (.@op$ == "mine") {
+		.@n = query_sql("SELECT name, qty, price, status FROM `www_market_listings` "
+			+ "WHERE account_id = " + .@aid + " ORDER BY created_at DESC LIMIT 30",
+			.@nm$, .@q, .@pr, .@st$);
+		for (.@i = 0; .@i < .@n; ++.@i)
+			dispbottom "EXRO\t" + .@nonce$ + "\tROW\t" + .@nm$[.@i] + "\t" + .@q[.@i]
+				+ "\t" + .@pr[.@i] + "\t" + .@st$[.@i];
+		dispbottom "EXRO\t" + .@nonce$ + "\tEND\tmine";
+		end;
+	}
+
+	if (.@op$ == "orders") {
+		.@n = query_sql("SELECT o.price, o.status, l.name FROM `www_market_orders` o "
+			+ "LEFT JOIN `www_market_listings` l ON l.id = o.listing_id "
+			+ "WHERE o.buyer_account_id = " + .@aid + " ORDER BY o.created_at DESC LIMIT 30",
+			.@pr, .@st$, .@nm$);
+		for (.@i = 0; .@i < .@n; ++.@i)
+			dispbottom "EXRO\t" + .@nonce$ + "\tROW\t" + .@nm$[.@i] + "\t" + .@pr[.@i] + "\t" + .@st$[.@i];
+		dispbottom "EXRO\t" + .@nonce$ + "\tEND\torders";
+		end;
+	}
+
+	if (.@op$ == "wallet") {
+		query_sql("SELECT zeny_balance FROM `www_market_wallet` WHERE account_id = " + .@aid, .@bal);
+		dispbottom "EXRO\t" + .@nonce$ + "\tROW\t" + ((getarraysize(.@bal)) ? .@bal[0] : 0);
+		dispbottom "EXRO\t" + .@nonce$ + "\tEND\twallet";
+		end;
+	}
+
+	if (.@op$ == "buy") {
+		.@lid$ = .@atcmd_parameters$[2];
+		.@r$ = callfunc("F_ExroMktBuy", .@lid$, .@aid, getcharid(0), strcharinfo(0));
+		if (.@r$ == "OK") dispbottom "EXRO\t" + .@nonce$ + "\tEND\tbuy";
+		else              dispbottom "EXRO\t" + .@nonce$ + "\tERR\t" + .@r$;
+		end;
+	}
+
+	dispbottom "EXRO\t" + .@nonce$ + "\tERR\tunknown op";
+	end;
 }
