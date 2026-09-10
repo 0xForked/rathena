@@ -1,0 +1,133 @@
+//===== eXRo Script ==========================================
+//= Earned Currency — Activity Coin + eXRo Coin  (PLAN-016 / Phase B)
+//===== Description: =========================================
+//= Two earned, account-wide currencies stored as global
+//= account reg vars (unloseable, shared across a player's
+//= characters):
+//=
+//=   #ACTIVITYCOIN — 1 per 60 accumulated minutes online.
+//=       A floating -1 controller sweeps online accounts once
+//=       a minute (attachrid, non-force so it never yanks a
+//=       player out of another NPC), bumps #ACTCOIN_MIN, and
+//=       hands out a coin each time it crosses a multiple of
+//=       60. An idle player (no input for 3 min) does not tick
+//=       — ponytail: a moving bot still farms it; a daily cap
+//=       + anti-bot is RPT-003, not launch.
+//=
+//=   #EXROCOIN — daily quest (see dailyquest.txt), and later
+//=       events / WoE. Spent at the Gear Box Vend below.
+//=
+//= Helpers F_AddActCoin(n) / F_AddExroCoin(n) are the one way
+//= other eXRo scripts grant coins. Every shop here debits the
+//= coin only AFTER the weight check passes, so there is no
+//= refund path to get wrong.
+//= Item ids verified against db/re/item_db_*.yml (2026-09-10).
+//============================================================
+
+-	script	exro_currency	-1,{
+	end;
+
+OnInit:
+	initnpctimer;
+	end;
+
+// Once a minute: +1 accumulated online-minute per online ACCOUNT
+// (GROUP BY account_id => a 2-client player still earns one coin).
+OnTimer60000:
+	.@n = query_sql("SELECT `account_id` FROM `char` WHERE `online` = 1 GROUP BY `account_id`", .@aid);
+	for (.@i = 0; .@i < .@n; .@i++) {
+		if (!attachrid(.@aid[.@i], false))
+			continue;
+		if (checkidle() < 180) {
+			set #ACTCOIN_MIN, #ACTCOIN_MIN + 1;
+			if (#ACTCOIN_MIN % 60 == 0) {
+				set #ACTIVITYCOIN, #ACTIVITYCOIN + 1;
+				dispbottom "[eXRo] +1 Activity Coin for time played — " + #ACTIVITYCOIN + " total.";
+			}
+		}
+		detachrid;
+	}
+	setnpctimer 0;
+	end;
+}
+
+function	script	F_AddActCoin	{
+	set #ACTIVITYCOIN, #ACTIVITYCOIN + getarg(0);
+	dispbottom "[eXRo] +" + getarg(0) + " Activity Coin — " + #ACTIVITYCOIN + " total.";
+	return;
+}
+
+function	script	F_AddExroCoin	{
+	set #EXROCOIN, #EXROCOIN + getarg(0);
+	dispbottom "[eXRo] +" + getarg(0) + " eXRo Coin — " + #EXROCOIN + " total.";
+	return;
+}
+
+//== Coin Shop — Activity Coin -> convenience consumables =====
+prontera,164,191,4	script	Coin Shop#exro	4_F_KAFRA1,{
+	mes "[Coin Shop]";
+	mes "Activity Coins: ^0055FF" + #ACTIVITYCOIN + "^000000";
+	mes "You earn one for every hour played. Spend them here.";
+	next;
+	.@s = select(
+		"Battle Manual (+100% EXP) — 3 AC",
+		"Bubble Gum (+100% drop) — 3 AC",
+		"HD Oridecon — 5 AC",
+		"HD Elunium — 5 AC",
+		"Blacksmith Blessing — 20 AC",
+		"Never mind");
+	if (.@s == 6)
+		close;
+	setarray .@item[0], 12208, 12210, 6240, 6241, 6635;
+	setarray .@cost[0],     3,     3,    5,    5,   20;
+	.@i = .@s - 1;
+	if (#ACTIVITYCOIN < .@cost[.@i]) {
+		mes "[Coin Shop]";
+		mes "You only have " + #ACTIVITYCOIN + " Activity Coin(s).";
+		close;
+	}
+	if (!checkweight(.@item[.@i], 1)) {
+		mes "[Coin Shop]";
+		mes "You're carrying too much — drop some weight first.";
+		close;
+	}
+	set #ACTIVITYCOIN, #ACTIVITYCOIN - .@cost[.@i];
+	getitem .@item[.@i], 1;
+	mes "[Coin Shop]";
+	mes "Here you go. " + #ACTIVITYCOIN + " Activity Coin(s) left.";
+	close;
+}
+
+//== Gear Box Vend — eXRo Coin -> curated material boxes ======
+prontera,166,191,4	script	Gear Box Vend#exro	4_M_ALCHE_A,{
+	mes "[Gear Box Vend]";
+	mes "eXRo Coins: ^0055FF" + #EXROCOIN + "^000000";
+	mes "Earn them from the Daily Hunt. Trade them for gear-up materials.";
+	next;
+	.@s = select(
+		"Refine Material Box — 15 EC  (10 HD Ori, 10 HD Elu, 2 Blessing)",
+		"Enriched Ore Box — 12 EC  (20 Enriched Ori, 20 Enriched Elu)",
+		"Consumable Box — 10 EC  (10 Battle Manual, 10 Bubble Gum)",
+		"Never mind");
+	if (.@s == 4)
+		close;
+	if (.@s == 1) { setarray .@id[0], 6240, 6241, 6635; setarray .@amt[0], 10, 10, 2; .@cost = 15; }
+	if (.@s == 2) { setarray .@id[0], 7620, 7619;       setarray .@amt[0], 20, 20;    .@cost = 12; }
+	if (.@s == 3) { setarray .@id[0], 12208, 12210;     setarray .@amt[0], 10, 10;    .@cost = 10; }
+	if (#EXROCOIN < .@cost) {
+		mes "[Gear Box Vend]";
+		mes "That costs " + .@cost + " eXRo Coins — you have " + #EXROCOIN + ".";
+		close;
+	}
+	if (!checkweight2(.@id, .@amt)) {
+		mes "[Gear Box Vend]";
+		mes "That won't fit — make room first.";
+		close;
+	}
+	set #EXROCOIN, #EXROCOIN - .@cost;
+	for (.@i = 0; .@i < getarraysize(.@id); .@i++)
+		getitem .@id[.@i], .@amt[.@i];
+	mes "[Gear Box Vend]";
+	mes "Delivered. " + #EXROCOIN + " eXRo Coins left.";
+	close;
+}

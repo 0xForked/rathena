@@ -1,0 +1,141 @@
+//===== eXRo Script ==========================================
+//= Zeny Sinks — Stat Trainer + Ore Trader  (PLAN-016 / Phase B)
+//===== Description: =========================================
+//= Drains zeny from the economy the way DewataRO does — no
+//= gambling NPC.
+//=
+//=   Stat Trainer — buy one stat point:
+//=       basic stat  200,000z  (cap .max_stat)
+//=       trait stat  500,000z  (cap .max_trait, 4th job only)
+//=     Zeny + cap are checked before anything is spent.
+//=     ponytail: the cap check reads readparam() which counts
+//=     gear bonuses, so it's slightly conservative — fine for
+//=     launch; a true base-stat cap is a later polish.
+//=
+//=   Ore Trader — buy Oridecon / Elunium for 30,000z, or
+//=     barter raw ore up to Enriched / HD grade. delitem
+//=     happens before getitem: a crash between loses the input,
+//=     never dupes (same safe direction as market.txt).
+//=
+//= Item ids verified against db/re/item_db_etc.yml (2026-09-10):
+//=   Oridecon 984  Elunium 985
+//=   HD Oridecon 6240  HD Elunium 6241
+//=   Enriched Oridecon 7620  Enriched Elunium 7619
+//============================================================
+
+prontera,150,187,4	script	Stat Trainer#exro	8W_SOLDIER,{
+	mes "[Stat Trainer]";
+	mes "I'll push a stat one point higher — for the right price.";
+	mes " Basic stat: ^0055FF200,000z^000000 each (cap " + .max_stat + ")";
+	mes " Trait stat: ^0055FF500,000z^000000 each (cap " + .max_trait + ", 4th job)";
+	next;
+	.@c = select("Train a basic stat", "Train a trait stat", "Leave");
+	if (.@c == 3)
+		close;
+
+	if (.@c == 1) {
+		.@s = select("STR", "AGI", "VIT", "INT", "DEX", "LUK");
+		setarray .@stat[1], bStr, bAgi, bVit, bInt, bDex, bLuk;
+		.@p = .@stat[.@s];
+		if (readparam(.@p) >= .max_stat) {
+			mes "[Stat Trainer]";
+			mes "That stat is already at the cap.";
+			close;
+		}
+		if (Zeny < 200000) {
+			mes "[Stat Trainer]";
+			mes "You need 200,000z for that.";
+			close;
+		}
+		Zeny -= 200000;
+		statusup2 .@p, 1;
+		mes "[Stat Trainer]";
+		mes "Feel the difference? Come back any time.";
+		close;
+	}
+
+	// trait stats — 4th job only (base 200+)
+	if (BaseLevel < 200) {
+		mes "[Stat Trainer]";
+		mes "Trait stats are for 4th-job adventurers only.";
+		close;
+	}
+	.@s = select("POW", "STA", "WIS", "SPL", "CON", "CRT");
+	setarray .@tr[1], bPow, bSta, bWis, bSpl, bCon, bCrt;
+	.@p = .@tr[.@s];
+	if (readparam(.@p) >= .max_trait) {
+		mes "[Stat Trainer]";
+		mes "That trait stat is already at the cap.";
+		close;
+	}
+	if (Zeny < 500000) {
+		mes "[Stat Trainer]";
+		mes "You need 500,000z for that.";
+		close;
+	}
+	Zeny -= 500000;
+	traitstatusup2 .@p, 1;
+	mes "[Stat Trainer]";
+	mes "Done. That one's rarer — spend it well.";
+	close;
+
+OnInit:
+	.max_stat = 130;
+	.max_trait = 110;
+	end;
+}
+
+prontera,148,187,4	script	Ore Trader#exro	4_M_ALCHE_B,{
+	mes "[Ore Trader]";
+	mes "Refined ore for sale, and I'll upgrade the rough stuff.";
+	next;
+	.@c = select(
+		"Buy Oridecon — 30,000z",
+		"Buy Elunium — 30,000z",
+		"Refine: 5 Oridecon -> 1 Enriched Oridecon",
+		"Refine: 5 Elunium -> 1 Enriched Elunium",
+		"Refine: 3 Oridecon -> 1 HD Oridecon",
+		"Refine: 3 Elunium -> 1 HD Elunium",
+		"Leave");
+	if (.@c == 7)
+		close;
+
+	if (.@c <= 2) {
+		.@id = (.@c == 1) ? 984 : 985;
+		if (Zeny < 30000) {
+			mes "[Ore Trader]";
+			mes "That's 30,000z a piece.";
+			close;
+		}
+		if (!checkweight(.@id, 1)) {
+			mes "[Ore Trader]";
+			mes "You're too heavy to carry it.";
+			close;
+		}
+		Zeny -= 30000;
+		getitem .@id, 1;
+		mes "[Ore Trader]";
+		mes "Pleasure doing business.";
+		close;
+	}
+
+	if (.@c == 3) { .@fid = 984; .@fq = 5; .@tid = 7620; }
+	if (.@c == 4) { .@fid = 985; .@fq = 5; .@tid = 7619; }
+	if (.@c == 5) { .@fid = 984; .@fq = 3; .@tid = 6240; }
+	if (.@c == 6) { .@fid = 985; .@fq = 3; .@tid = 6241; }
+	if (countitem(.@fid) < .@fq) {
+		mes "[Ore Trader]";
+		mes "Bring me " + .@fq + "x " + getitemname(.@fid) + " and I'll do it.";
+		close;
+	}
+	if (!checkweight(.@tid, 1)) {
+		mes "[Ore Trader]";
+		mes "Make some room in your pack first.";
+		close;
+	}
+	delitem .@fid, .@fq;
+	getitem .@tid, 1;
+	mes "[Ore Trader]";
+	mes "There — one " + getitemname(.@tid) + ", fresh off the anvil.";
+	close;
+}

@@ -1,0 +1,133 @@
+//===== eXRo Script ==========================================
+//= Daily Hunt — daily quest for eXRo Coin  (PLAN-016 / Phase B)
+//===== Description: =========================================
+//= DewataRO's model exactly: one quest a day, kill 100 of a
+//= rolled target from your level tier, turn in for eXRo Coin.
+//= No streak, no weekly bonus. Resets at 00:00 server time
+//= (the map container runs TZ=UTC, PLAN-012), keyed on
+//= DT_DAYOFYEAR.
+//=
+//= Reward by BaseLevel tier: 1 / 2 / 4 / 5 / 7 #EXROCOIN.
+//=
+//= Pool rule: within a tier, a mob can be rolled up to 3 times
+//= before the tier's pick counters reset — so you cycle the
+//= whole pool before repeating. State is per-account (# reg
+//= vars), no table:
+//=   #dq_date   last DT_DAYOFYEAR a target was rolled
+//=   #dq_mob    current target mob id
+//=   #dq_kills  0..100, or -1 once claimed today
+//=   #dq_tier   tier the pick counters belong to
+//=   #dq_used[] per-index pick counter for that tier
+//=
+//= Progress hook is OnNPCKillEvent (same guard shape as
+//= leaderboard.txt): cheap early-outs, no query on a miss.
+//============================================================
+
+-	script	exro_dailyquest	-1,{
+	end;
+
+OnInit:
+	setarray .pool_T1[0], 1002,1007,1063,1113,1009;   // Poring/Fabre/Lunatic/Drops/Condor
+	setarray .pool_T2[0], 1013,1014,1055,1052,1166;   // Wolf/Spore/Muka/Rocker/Savage
+	setarray .pool_T3[0], 1023,1037,1206,1613,1103;   // OrcWarrior/SideWinder/Anolian/Metaling/Caramel
+	setarray .pool_T4[0], 1098,1253,1310,1391,1020;   // Anubis/Gargoyle/Majoruros/Galapago/Mandragora
+	setarray .pool_T5[0], 1268,1379,1310,1253,1098;   // BloodyKnight/NightmareTerror/Majoruros/Gargoyle/Anubis
+	setarray .reward[1], 1, 2, 4, 5, 7;               // index by tier 1..5
+	.picks_max = 3;
+	.goal = 100;
+	end;
+
+OnNPCKillEvent:
+	if (#dq_mob == 0 || #dq_kills < 0 || #dq_kills >= .goal)
+		end;
+	if (killedrid != #dq_mob)
+		end;
+	if (#dq_date != gettime(DT_DAYOFYEAR))
+		end;
+	set #dq_kills, #dq_kills + 1;
+	if (#dq_kills == .goal)
+		dispbottom "[Daily Hunt] Target reached — head back for your reward.";
+	end;
+}
+
+prontera,168,191,4	script	Daily Hunt#exro	8W_SOLDIER,{
+	.@today = gettime(DT_DAYOFYEAR);
+	mes "[Daily Hunt]";
+
+	// already claimed today
+	if (#dq_date == .@today && #dq_kills < 0) {
+		mes "You've claimed today's bounty already.";
+		mes "Come back after the daily reset (00:00 server / UTC).";
+		close;
+	}
+
+	// new day — roll a fresh target
+	if (#dq_date != .@today) {
+		callsub S_Roll;
+		set #dq_date, .@today;
+		set #dq_kills, 0;
+		mes "Today's bounty: defeat ^0055FF" + .goal + " " + getmonsterinfo(#dq_mob, MOB_NAME) + "^000000.";
+		mes "Return here when it's done.";
+		close;
+	}
+
+	// in progress
+	if (#dq_kills < .goal) {
+		mes "Progress: ^0055FF" + #dq_kills + " / " + .goal + "^000000 " + getmonsterinfo(#dq_mob, MOB_NAME) + ".";
+		close;
+	}
+
+	// ready to turn in
+	.@tier = callfunc("F_DqTier", BaseLevel);
+	.@rw = .reward[.@tier];
+	callfunc "F_AddExroCoin", .@rw;
+	set #dq_kills, -1;
+	mes "Bounty complete — nicely done.";
+	mes "Paid out ^0055FF" + .@rw + " eXRo Coin^000000. See you tomorrow.";
+	close;
+
+S_Roll:
+	.@tier = callfunc("F_DqTier", BaseLevel);
+	switch (.@tier) {
+		case 1: copyarray .@pool[0], .pool_T1[0], getarraysize(.pool_T1); break;
+		case 2: copyarray .@pool[0], .pool_T2[0], getarraysize(.pool_T2); break;
+		case 3: copyarray .@pool[0], .pool_T3[0], getarraysize(.pool_T3); break;
+		case 4: copyarray .@pool[0], .pool_T4[0], getarraysize(.pool_T4); break;
+		default: copyarray .@pool[0], .pool_T5[0], getarraysize(.pool_T5); break;
+	}
+	.@sz = getarraysize(.@pool);
+
+	// pick counters belong to a tier; moving tier clears them
+	if (#dq_tier != .@tier) {
+		deletearray #dq_used[0], getarraysize(#dq_used);
+		set #dq_tier, .@tier;
+	}
+
+	// eligible = indices rolled fewer than .picks_max times
+	.@ec = 0;
+	for (.@i = 0; .@i < .@sz; .@i++)
+		if (#dq_used[.@i] < .picks_max) {
+			.@elig[.@ec] = .@i;
+			.@ec++;
+		}
+	if (.@ec == 0) {
+		deletearray #dq_used[0], getarraysize(#dq_used);
+		for (.@i = 0; .@i < .@sz; .@i++)
+			.@elig[.@i] = .@i;
+		.@ec = .@sz;
+	}
+
+	.@k = .@elig[rand(.@ec)];
+	set #dq_used[.@k], #dq_used[.@k] + 1;
+	set #dq_mob, .@pool[.@k];
+	return;
+}
+
+function	script	F_DqTier	{
+	.@lv = getarg(0);
+	if (.@lv <= 30)  return 1;
+	if (.@lv <= 60)  return 2;
+	if (.@lv <= 99)  return 3;
+	if (.@lv <= 149) return 4;
+	return 5;
+}
