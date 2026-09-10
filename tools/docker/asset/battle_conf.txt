@@ -59,6 +59,13 @@ max_extended_parameter: 255
 max_fourth_parameter: 255
 max_trait_parameter: 255
 
+// #9 Hollgrehenn / all refiners HANG in roBrowser: with feature.refineui on
+// the NPC calls refineui() -> ZC_REFINE_OPEN_WINDOW, which roBrowserLegacy
+// does not implement, so the client never answers and the dialog locks.
+// Off = every refiner (incl. HD) falls back to the classic select()-menu
+// refinemain, which the client handles. Same rationale as feature.roulette.
+feature.refineui: off
+
 // #15 Fast casting under RENEWAL_CAST (this fork compiles it in).
 //  - vcast_stat_scale: the (DEX*2 + INT) total at which variable cast hits
 //    zero. Stock 530. Set to 300 so ~150 total DEX alone (150*2) = instant

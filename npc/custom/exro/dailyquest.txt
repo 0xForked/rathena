@@ -27,13 +27,10 @@
 	end;
 
 OnInit:
-	setarray .pool_T1[0], 1002,1007,1063,1113,1009;   // Poring/Fabre/Lunatic/Drops/Condor
-	setarray .pool_T2[0], 1013,1014,1055,1052,1166;   // Wolf/Spore/Muka/Rocker/Savage
-	setarray .pool_T3[0], 1023,1037,1206,1613,1103;   // OrcWarrior/SideWinder/Anolian/Metaling/Caramel
-	setarray .pool_T4[0], 1098,1253,1310,1391,1020;   // Anubis/Gargoyle/Majoruros/Galapago/Mandragora
-	setarray .pool_T5[0], 1268,1379,1310,1253,1098;   // BloodyKnight/NightmareTerror/Majoruros/Gargoyle/Anubis
-	setarray .reward[1], 1, 2, 4, 5, 7;               // index by tier 1..5
-	.picks_max = 3;
+	// RPT-004 #18: only the kill-tally goal is needed here. The tier
+	// pools / reward table / S_Roll live in the visible Daily Hunt#exro
+	// NPC (NPC-scope `.` vars do not cross NPCs), which broke the roll
+	// and the turn-in payout when they were only set on this controller.
 	.goal = 100;
 	end;
 
@@ -85,6 +82,20 @@ prontera,168,191,4	script	Daily Hunt#exro	8W_SOLDIER,{
 	mes "Bounty complete — nicely done.";
 	mes "Paid out ^0055FF" + .@rw + " eXRo Coin^000000. See you tomorrow.";
 	close;
+
+OnInit:
+	// RPT-004 #18: config lives on THIS NPC (S_Roll + the turn-in read
+	// .pool_*/.reward/.goal, which are NPC-scoped and were only set on
+	// the exro_dailyquest controller).
+	setarray .pool_T1[0], 1002,1007,1063,1113,1009;   // Poring/Fabre/Lunatic/Drops/Condor
+	setarray .pool_T2[0], 1013,1014,1055,1052,1166;   // Wolf/Spore/Muka/Rocker/Savage
+	setarray .pool_T3[0], 1023,1037,1206,1613,1103;   // OrcWarrior/SideWinder/Anolian/Metaling/Caramel
+	setarray .pool_T4[0], 1098,1253,1310,1391,1020;   // Anubis/Gargoyle/Majoruros/Galapago/Mandragora
+	setarray .pool_T5[0], 1268,1379,1310,1253,1098;   // BloodyKnight/NightmareTerror/Majoruros/Gargoyle/Anubis
+	setarray .reward[1], 1, 2, 4, 5, 7;               // index by tier 1..5
+	.picks_max = 3;
+	.goal = 100;
+	end;
 
 S_Roll:
 	.@tier = callfunc("F_DqTier", BaseLevel);

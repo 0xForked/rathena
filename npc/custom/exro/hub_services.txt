@@ -1,19 +1,26 @@
 //===== eXRo Script ==========================================
 //= Hub Services — storage + mount rental at the Prontera plaza
 //===== Description: =========================================
-//= RPT-004 #16 + #17. Two small QoL NPCs next to the rest of
-//= the services hub (warper / healer / jobmaster / stylist /
-//= reset / coin shops).
+//= RPT-004 #16 + #17 (+ helps #19). Two small QoL NPCs next to
+//= the rest of the services hub (warper / healer / jobmaster /
+//= stylist / reset / coin shops).
 //=
 //= #16 Storage Keeper — opens account storage. `openstorage`
-//= needs no Kafra card / fee here; this is a convenience desk,
-//= the real Kafra network still exists for save/warp/cart.
+//= needs no Kafra card / fee here; a convenience desk, the real
+//= Kafra network still exists for save/warp/cart.
 //=
-//= #17 Rental Master — free mounts. These are OPTION toggles,
-//= not timed rentals: they last until dismissed, a job change,
-//= or relog-with-job-recalc. ponytail: a real timed rental
-//= needs mount items + `rentitem`; a toggle covers "I want a
-//= Peco / Falcon / Cart / Dragon and there's no NPC for it".
+//= #17 Rental Master — free mounts.
+//=  - "Rental Mount" = `setmounting()` (SC_ALL_RIDING). Works for
+//=    EVERY class, no class skill needed — this is the reliable
+//=    one and also covers a Crusader who never learned KN_RIDING
+//=    (#19: the stock Peco Peco Breeder at prontera,232,318 still
+//=    exists for the real Peco once KN_RIDING is learned).
+//=  - Cart / Falcon / Peco / Dragon = the class-native mounts;
+//=    the engine only grants these if the player's job has the
+//=    matching skill (MC_PUSHCART / HT_FALCON / KN_RIDING /
+//=    RK_DRAGONTRAINING), otherwise the pick is a no-op.
+//= All toggles last until dismissed here or a job change / relog
+//= recalc. ponytail: a timed rentitem mount is the upgrade path.
 //============================================================
 
 prontera,160,188,4	script	Storage Keeper	4_F_KAFRA1,{
@@ -29,14 +36,24 @@ prontera,160,188,4	script	Storage Keeper	4_F_KAFRA1,{
 
 prontera,158,188,4	script	Rental Master	4_M_JOB_KNIGHT2,{
 	mes "[Rental Master]";
-	mes "Free mounts. They stay until you dismiss them or change job.";
+	mes "Free mounts. 'Rental Mount' works for any class; the others need your job's mount skill.";
 	next;
-	switch (select("Cart", "Falcon", "Peco Peco", "Dragon (Rune Knight)", "Dismiss all", "Leave")) {
-	case 1: setcart 1; break;
-	case 2: setfalcon 1; break;
-	case 3: setriding 1; break;
-	case 4: setdragon 1; break;
-	case 5:
+	switch (select("Rental Mount (any class)", "Cart", "Falcon", "Peco Peco", "Dragon", "Dismiss all", "Leave")) {
+	case 1:
+		if (ismounting()) {
+			mes "[Rental Master]";
+			mes "You're already on a rental mount.";
+			close;
+		}
+		setmounting();
+		break;
+	case 2: setcart 1; break;
+	case 3: setfalcon 1; break;
+	case 4: setriding 1; break;
+	case 5: setdragon 1; break;
+	case 6:
+		if (ismounting())
+			setmounting();
 		setcart 0;
 		setfalcon 0;
 		setriding 0;
@@ -45,7 +62,7 @@ prontera,158,188,4	script	Rental Master	4_M_JOB_KNIGHT2,{
 		mes "[Rental Master]";
 		mes "All dismissed.";
 		close;
-	case 6:
+	case 7:
 		close;
 	}
 	mes "[Rental Master]";
