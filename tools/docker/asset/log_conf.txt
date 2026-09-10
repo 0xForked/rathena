@@ -2,23 +2,30 @@
 // ---------------------------------------------------------------------------
 // Tracked asset. Mounted over /rathena/conf/import/log_conf.txt by
 // run-nopod.sh / run-prod.sh / docker-compose.AIO.yaml. Additive over
-// conf/log_athena.conf — only keys set here change.
+// conf/log_athena.conf — only the keys set here change.
 //
-// Keep the DB `log` schema lean at launch: trades, pick/drop of notable items,
-// zeny movements, chat OFF (privacy + volume). Container stdout is capped
-// separately by podman `--log-opt max-size` (see run-prod.sh) + host logrotate
-// for Caddy / www — retention policy in DEPLOY.md.
+// Keep the DB `log` schema lean at launch: item pick/drop + zeny movement for
+// economy forensics, chat OFF (privacy + volume). Container stdout is capped
+// separately by podman `--log-opt max-size` (run-prod.sh) + host logrotate for
+// Caddy / www — retention policy in DEPLOY.md.
 //
-// Re-confirm under load that NO secret / play-token / password hash is written
-// to any log target (conventions/security.md).
+// Re-confirm under load that NO secret / play-token / password hash reaches any
+// log target (conventions/security.md).
+//
+// Valid keys in this build (conf/log_athena.conf): log_filter, log_branch,
+// log_zeny, log_cash, log_mvpdrop, log_commands, log_npc, log_chat,
+// log_chat_woe_disable, log_feeding.
+// log_filter is a bitmask (see doc/log_athena.txt) — 1 = healing, 2 = etc,
+// 4 = usable, 8 = weapon, 16 = armor, 32 = card, 64 = petaccessory,
+// 128 = flag/plant, 256 = misc, 512 = pet, 1024 = homun, 2048 = mail/auction,
+// 4096 = crafted. 0xFFFFFFF = everything.
 // ---------------------------------------------------------------------------
 
-log_filter: 33        // 1 (heal) + 32 (produce)  — tweak per doc/log_athena.txt bitmask
-log_chat: 0           // no chat logging
-log_chat_woe_disable: yes
-
-// Trade / storage / mail item movement — keep for economy forensics.
-log_pick_pc: 0xFFFFF  // all player pick/drop reasons
-log_zeny: 100000      // log zeny gains/losses >= 100k
+log_filter: 0xFFFFFFF   // log every item pick/drop reason -> picklog
+log_zeny: 100000        // log zeny gains/losses >= 100k
+log_cash: yes           // cash-point movement
 log_mvpdrop: yes
-log_present: yes
+log_commands: yes       // atcommand usage (GM audit)
+log_npc: yes            // logmes() from scripts
+log_chat: 0             // no chat logging
+log_chat_woe_disable: yes

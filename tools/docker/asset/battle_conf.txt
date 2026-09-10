@@ -7,10 +7,12 @@
 feature.roulette: off
 feature.roulette_bonus_reward: off
 
-// Grade Enhancement (PLAN-018 Phase E / E1). Rates/materials from the stock
-// db/re/enchantgrade.yml; db/import/enchantgrade.yml (asset) is the eXRo tuning
-// hook — empty for now, tuning is a launch-week curation task.
-feature.enchantgrade: on
+// Grade Enhancement (PLAN-018 Phase E / E1): this fork COMPILES the feature in
+// (enchantgradeui + ENCHANTGRADE_DB + the grade code) with NO on/off config
+// key — it is always available. So there is nothing to set here; the Grade
+// Station NPC just calls enchantgradeui;. Rates/materials come from the stock
+// db/re/enchantgrade.yml, tuned via db/import/enchantgrade.yml (asset, empty
+// for now — a launch-week curation task).
 
 // ------------------------------------------------------------------------
 //  eXRo rates (PLAN-015 / Phase 2a). SOURCE OF TRUTH for the numbers the
