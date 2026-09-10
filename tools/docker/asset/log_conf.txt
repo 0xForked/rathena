@@ -1,0 +1,24 @@
+// eXRo log-config overrides  (PLAN-018 Phase F / F4)
+// ---------------------------------------------------------------------------
+// Tracked asset. Mounted over /rathena/conf/import/log_conf.txt by
+// run-nopod.sh / run-prod.sh / docker-compose.AIO.yaml. Additive over
+// conf/log_athena.conf — only keys set here change.
+//
+// Keep the DB `log` schema lean at launch: trades, pick/drop of notable items,
+// zeny movements, chat OFF (privacy + volume). Container stdout is capped
+// separately by podman `--log-opt max-size` (see run-prod.sh) + host logrotate
+// for Caddy / www — retention policy in DEPLOY.md.
+//
+// Re-confirm under load that NO secret / play-token / password hash is written
+// to any log target (conventions/security.md).
+// ---------------------------------------------------------------------------
+
+log_filter: 33        // 1 (heal) + 32 (produce)  — tweak per doc/log_athena.txt bitmask
+log_chat: 0           // no chat logging
+log_chat_woe_disable: yes
+
+// Trade / storage / mail item movement — keep for economy forensics.
+log_pick_pc: 0xFFFFF  // all player pick/drop reasons
+log_zeny: 100000      // log zeny gains/losses >= 100k
+log_mvpdrop: yes
+log_present: yes
