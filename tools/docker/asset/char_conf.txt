@@ -23,3 +23,7 @@ start_items: 1201,1,2:2301,1,16:601,30,0:501,30,0:602,5,0:569,20,0
 start_items_doram: 1681,1,2:2301,1,16:601,30,0:501,30,0:602,5,0:569,20,0
 
 start_zeny: 5000
+
+// eXRo (PLAN-020): allow _ - . in character names too (beta QoL). Default
+// char_name_option:1 restricts names to char_name_letters; base set + these three.
+char_name_letters: abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-.
