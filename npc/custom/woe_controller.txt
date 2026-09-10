@@ -75,7 +75,9 @@ OnInit:
 // -----------------------------------------------------------
 
 	// Combine values as needed (e.g. 1|8 = 1+8 = 9).
-	set .Options, 1|8;
+	// eXRo (PLAN-012): rewards OFF. Set e.g. 1|2 and .reward_id/.reward_zeny
+	// below to enable siege rewards.
+	set .Options, 0;
 
 	// Rewards per castle.
 	//   setarray .reward_id[0],     <itemID>{,<itemID>,...}
@@ -147,6 +149,18 @@ OnInit:
 	}
 
 	setarray .Days$[0],"Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday";
+
+// -----------------------------------------------------------
+//  eXRo (PLAN-012): hard-code the weekly WoE window, overriding whatever the
+//  in-game Session Manager last stored, so it always matches
+//  www/lib/config/woe.ts. $WOE_CONTROL is groups of 4:
+//    <day 0=Sun..6=Sat>, <start hour>, <end hour>, <castle bitmask>
+//  The map-server container runs TZ=UTC, so 21..22 is 21:00-22:00 UTC.
+//  Castle bit = index into .Castles$[] (built by Castle() above); getd(".<map>")
+//  returns that index+1, so prtg_cas01 -> bit (getd(".prtg_cas01") - 1) == 0.
+// -----------------------------------------------------------
+	deletearray $WOE_CONTROL[0], getarraysize($WOE_CONTROL);
+	setarray $WOE_CONTROL[0], 6, 21, 22, (1 << (getd(".prtg_cas01") - 1));
 
 // -----------------------------------------------------------
 

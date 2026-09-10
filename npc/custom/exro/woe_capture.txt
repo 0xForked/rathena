@@ -1,0 +1,72 @@
+//===== eXRo Script ==========================================
+//= WoE Capture Recorder  (PLAN-012)
+//===== Description: =========================================
+//= Records who holds the one contested FE castle (prtg_cas01)
+//= into the website table www_woe_captures, so the homepage
+//= castle widget can show "held for N days" and a capture list.
+//=
+//= Mechanism: poll GetCastleData(CD_GUILD_ID) — no stock-script
+//= edit. Seeds the last-known holder on boot / OnAgitInit /
+//= OnAgitStart; samples once a minute WHILE WoE is live (npc
+//= timer) and once on OnAgitEnd as a backstop. On a change to a
+//= real guild it writes one row with UTC_TIMESTAMP().
+//=
+//= Zero HTTP from the map-server (ADR-0003 / ADR-0008). Every
+//= interpolated string is escape_sql()'d; the castle id is a
+//= literal. from_guild is NULL when the castle was unheld.
+//===== Column contract (www/db/schema.sql) =================
+//= www_woe_captures: castle_id, from_guild, to_guild, captured_at
+//=   captured_at is UTC; www reads it back with a 'Z' suffix.
+//============================================================
+
+-	script	woe_capture	-1,{
+	end;
+
+// Seed .holder$ with the current owner ("" when the castle is unheld).
+OnInit:
+	callsub S_Seed;
+	initnpctimer;
+	end;
+
+OnAgitInit:
+OnAgitStart:
+	callsub S_Seed;
+	end;
+
+// Minute tick — only act while a siege is running.
+OnTimer60000:
+	if (agitcheck())
+		callsub S_Check;
+	setnpctimer 0;
+	end;
+
+// Backstop: catch the final state when the siege closes.
+OnAgitEnd:
+	callsub S_Check;
+	end;
+
+S_Seed:
+	.@gid = getcastledata("prtg_cas01", CD_GUILD_ID);
+	set .holder$, (.@gid > 0) ? getguildname(.@gid) : "";
+	return;
+
+S_Check:
+	.@gid = getcastledata("prtg_cas01", CD_GUILD_ID);
+	.@now$ = (.@gid > 0) ? getguildname(.@gid) : "";
+	if (.@now$ == .holder$)
+		return;
+	// Castle emptied (guild vacated / disbanded) — not a capture; just re-seed.
+	if (.@now$ == "") {
+		set .holder$, "";
+		return;
+	}
+	query_sql("INSERT INTO `www_woe_captures` "
+		+ "(castle_id, from_guild, to_guild, captured_at) VALUES ('prtg_cas01', "
+		+ ((.holder$ == "") ? "NULL" : "'" + escape_sql(.holder$) + "'") + ", '"
+		+ escape_sql(.@now$) + "', UTC_TIMESTAMP())");
+	query_sql("SELECT LAST_INSERT_ID()", .@rid);
+	debugmes "woe_capture: row " + .@rid + "  "
+		+ ((.holder$ == "") ? "(unheld)" : .holder$) + " -> " + .@now$;
+	set .holder$, .@now$;
+	return;
+}

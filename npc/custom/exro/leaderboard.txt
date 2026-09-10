@@ -1,0 +1,54 @@
+//===== eXRo Script ==========================================
+//= Combat Leaderboard Populator  (PLAN-013)
+//===== Description: =========================================
+//= Feeds the website PvP / MvP leaderboards. One running
+//= counter per (kind, account_id) in www_leaderboard_stats;
+//= getLeaderboard('pvp'|'mvp') reads the top 10 by score.
+//=
+//=   PvP  — OnPCKillEvent, counted only on mf_pvp maps (so WoE
+//=          / GvG castle maps, which are *_gld not mf_pvp, and
+//=          Battlegrounds do not inflate it).
+//=   MvP  — OnNPCKillEvent, counted only when the mob has
+//=          non-zero MVP exp (getmonsterinfo MOB_MVPEXP). That
+//=          guard is the first statement so a normal mob kill
+//=          costs one function call + an end, never a query_sql.
+//=
+//= These labels are always active — no conf/battle flag. Zero
+//= HTTP from the map-server (ADR-0003 / ADR-0008). The name is
+//= escape_sql()'d; account_id is a numeric var.
+//===== Column contract (www/db/schema.sql) =================
+//= www_leaderboard_stats: kind, account_id, char_name, score
+//=   PK (kind, account_id) — INSERT ... ON DUPLICATE KEY UPDATE.
+//============================================================
+
+-	script	exro_leaderboard	-1,{
+	end;
+
+OnPCKillEvent:
+	// killer is attached; only real PvP arenas count.
+	if (!getmapflag(strcharinfo(3), mf_pvp))
+		end;
+	if (getcharid(3) == 0)
+		end;
+	callsub S_Bump, "pvp";
+	end;
+
+OnNPCKillEvent:
+	// killedrid = mob class id. Cheap early-out for the 99% non-MvP case.
+	if (getmonsterinfo(killedrid, MOB_MVPEXP) <= 0)
+		end;
+	if (getcharid(3) == 0)
+		end;
+	callsub S_Bump, "mvp";
+	end;
+
+// getarg(0) = 'pvp' | 'mvp'
+S_Bump:
+	.@kind$ = getarg(0);
+	.@aid = getcharid(3);
+	.@name$ = escape_sql(strcharinfo(0));
+	query_sql("INSERT INTO `www_leaderboard_stats` (kind, account_id, char_name, score) "
+		+ "VALUES ('" + .@kind$ + "', " + .@aid + ", '" + .@name$ + "', 1) "
+		+ "ON DUPLICATE KEY UPDATE score = score + 1, char_name = '" + .@name$ + "'");
+	return;
+}
