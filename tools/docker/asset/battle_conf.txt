@@ -6,3 +6,36 @@
 // backstop so a modified client still can't open it.
 feature.roulette: off
 feature.roulette_bonus_reward: off
+
+// ------------------------------------------------------------------------
+//  eXRo rates (PLAN-015 / Phase 2a). SOURCE OF TRUTH for the numbers the
+//  site shows — keep www/lib/config/rates.ts in lockstep with these.
+//    EXP:   38x base / job / quest / MVP
+//    Drops: 9x common / heal / use / equip (+ boss + MVP variants) + treasure
+//    Cards: flat 0.8% — multiplier left at 1x, min-chance clamped to 80/10000.
+//           Every card's base chance is well under 0.8%, so all get clamped up.
+// ------------------------------------------------------------------------
+base_exp_rate: 3800
+job_exp_rate: 3800
+quest_exp_rate: 3800
+mvp_exp_rate: 3800
+
+item_rate_common: 900
+item_rate_common_boss: 900
+item_rate_common_mvp: 900
+item_rate_heal: 900
+item_rate_heal_boss: 900
+item_rate_heal_mvp: 900
+item_rate_use: 900
+item_rate_use_boss: 900
+item_rate_use_mvp: 900
+item_rate_equip: 900
+item_rate_equip_boss: 900
+item_rate_equip_mvp: 900
+item_rate_mvp: 900
+item_rate_treasure: 900
+
+item_rate_card: 100
+item_rate_card_boss: 100
+item_rate_card_mvp: 100
+item_drop_card_min: 80

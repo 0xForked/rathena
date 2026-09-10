@@ -1,2 +1,12 @@
 char_ip: char
 map_ip: 127.0.0.1
+
+// Inter-server auth — must match conf/import/char_conf.txt + the login
+// account_id=1 row (rathena/sql-files/z_exro_server_account.sql). DEV values;
+// prod rotates (DEPLOY.md). PLAN-015.
+userid: exro_srv
+passwd: exro_dev
+
+// eXRo MOTD (PLAN-015). Content lives in conf/import/motd_exro.txt so the stock
+// conf/motd.txt is never edited.
+motd_txt: conf/import/motd_exro.txt

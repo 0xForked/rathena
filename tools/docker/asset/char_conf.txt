@@ -1,3 +1,25 @@
 login_ip: login
 char_ip: 127.0.0.1
 pincode_enabled: no
+
+// ---- eXRo identity + new-player start (PLAN-015 / Phase 2a) ----
+server_name: eXRo
+
+// Inter-server auth off the world-known s1/p1 default. These are DEV values
+// (same status as the ragnarok/ragnarok DB creds); prod rotates them in a
+// non-committed override + the matching `login` account_id=1 row (see DEPLOY.md).
+// The DB side is seeded by rathena/sql-files/z_exro_server_account.sql.
+userid: exro_srv
+passwd: exro_dev
+
+// Spawn at the Prontera fountain — the QoL NPC hub (healer/warper/jobmaster/
+// stylist/reset/platinum are placed around 150-165,180-195 in scripts_custom).
+start_point: prontera,156,191
+start_point_doram: prontera,156,191
+
+// Starter kit: weapon + shirt (equipped) + Wing of Fly x30 (601) + Red Potion
+// x30 (501) + Butterfly Wing x5 (602) + Novice Potion x20 (569).
+start_items: 1201,1,2:2301,1,16:601,30,0:501,30,0:602,5,0:569,20,0
+start_items_doram: 1681,1,2:2301,1,16:601,30,0:501,30,0:602,5,0:569,20,0
+
+start_zeny: 5000

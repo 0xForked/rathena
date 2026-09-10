@@ -1,0 +1,74 @@
+# This file is a part of rAthena.
+#   Copyright(C) 2022 rAthena Development Team
+#   https://rathena.org - https://github.com/rathena
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+###########################################################################
+# Player Group Database
+###########################################################################
+#
+# Player Group Settings
+#
+###########################################################################
+# - Id                    Group ID.
+#   Name                  Group name.
+#   Level                 GM Level used for ranking groups. (Default: 0)
+#   LogCommands           Whether atcommands should be logged or not. (Default: false)
+#   Commands:             List of atcommands that can be used by this group. (Default: none)
+#     <atcommand name>    Whether the specified atcommand can be used by this group or not.
+#   CharCommands:         List of charcommands that can be used by this group. (Default: none)
+#     <charcommand name>  Whether the specified charcommand can be used by this group or not.
+#   Permissions:          List of permissions the group has. (Default: none)
+#     <permission name>   Whether the group has this permission or not.
+#   Inherit:              List of groups that will be inherited. (Default: none)
+#     <group name>        Whether this group will be inherited or not.
+###########################################################################
+
+Header:
+  Type: PLAYER_GROUP_DB
+  Version: 1
+
+# eXRo (PLAN-015 / Phase 2a): give every regular player (group 0) a generous
+# quality-of-life command set.
+#
+# The group DB import MERGES into the stock definition, so this Body lists ONLY
+# the additions — re-declaring a stock command (changedress/resurrect) or the
+# stock Permissions is a "Group already has command" error that rejects the whole
+# import. Stock group 0 keeps can_trade / can_party / attendance untouched.
+#
+# NOT granted: @item @spawn @monster @zeny @heal(others) @kick @ban @mount ... —
+# those stay group 99 (Admin). @warp to arbitrary coords also stays GM; players
+# use @go + the Warper NPC.
+Body:
+  - Id: 0
+    Commands:
+      commands: true
+      rates: true
+      time: true
+      refresh: true
+      noks: true
+      showexp: true
+      showdelay: true
+      go: true
+      autoloot: true
+      autolootitem: true
+      autotrade: true
+      storage: true
+      guildstorage: true
+      monsterinfo: true
+      iteminfo: true
+      whodrops: true
+      whereis: true
+      exp: true
