@@ -1,8 +1,7 @@
 //===== eXRo Script ==========================================
 //= Zeny Sinks — Stat Trainer + Ore Trader  (PLAN-016 / Phase B)
 //===== Description: =========================================
-//= Drains zeny from the economy the way DewataRO does — no
-//= gambling NPC.
+//= Drains zeny from the economy — no gambling NPC.
 //=
 //=   Stat Trainer — buy one stat point:
 //=       basic stat  200,000z  (cap .max_stat)

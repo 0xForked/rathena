@@ -1,8 +1,8 @@
 //===== eXRo Script ==========================================
 //= Daily Hunt — daily quest for eXRo Coin  (PLAN-016 / Phase B)
 //===== Description: =========================================
-//= DewataRO's model exactly: one quest a day, kill 100 of a
-//= rolled target from your level tier, turn in for eXRo Coin.
+//= One quest a day: kill 100 of a rolled target from your
+//= level tier, turn in for eXRo Coin.
 //= No streak, no weekly bonus. Resets at 00:00 server time
 //= (the map container runs TZ=UTC, PLAN-012), keyed on
 //= DT_DAYOFYEAR.
