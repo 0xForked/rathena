@@ -47,8 +47,7 @@ OnNPCKillEvent:
 	end;
 }
 
-// eXRo RPT-004: moved off the crowded fountain-front stock-NPC tile.
-prontera,175,168,4	script	Daily Hunt#exro	8W_SOLDIER,{
+prontera,168,191,4	script	Daily Hunt#exro	8W_SOLDIER,{
 	.@today = gettime(DT_DAYOFYEAR);
 	mes "[Daily Hunt]";
 

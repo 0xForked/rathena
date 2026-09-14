@@ -24,8 +24,7 @@ function	script	F_ExroSlotView	{
 	return (.@it > 0) ? getiteminfo(.@it, ITEMINFO_VIEW) : 0;
 }
 
-// eXRo RPT-004: moved off the crowded fountain-front stock-NPC tile.
-prontera,150,168,4	script	Costume Mirror	4_F_KAFRA1,{
+prontera,164,185,4	script	Costume Mirror	4_F_KAFRA1,{
 	// snapshot the REAL looks from equipment (not getlook(), which
 	// would capture a look already left stuck by an earlier ESC-out).
 	// Costume slot shows over the normal slot, so it wins.

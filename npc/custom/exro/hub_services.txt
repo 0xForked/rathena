@@ -1,12 +1,17 @@
 //===== eXRo Script ==========================================
 //= Hub Services — storage + mount rental at the Prontera plaza
 //===== Description: =========================================
-//= RPT-004 #16 + #17 (+ helps #19). Two small QoL NPCs, spread
-//= apart on the west (Storage) and east (Rental) sides of the
-//= plaza — the fountain-front stock NPC cluster (Coin Shop, Gear
-//= Box Vend, Guild Warehouse Manager, Devil Square Guardian,
-//= Smile Girl, Mado Gear Armorer, Prontera Guide, Market Kiosk)
-//= made the old shared tile unreachable by click.
+//= RPT-004 #16 + #17 (+ helps #19). Two small QoL NPCs at the
+//= Prontera plaza hub. Storage Keeper stays at its original spot;
+//= Rental Master moved to 172,178 (east side, clear of the
+//= fountain-front stock NPC cluster) since its original tile was
+//= hard to click apart from the crowd -- confirmed walkable and
+//= reachable in-client. A wider hub reshuffle was attempted and
+//= reverted: some of the new coordinates picked (e.g. Daily Hunt's)
+//= turned out to be off the walkable plaza ("Invalid coordinates"
+//= on warp) -- reverting untested guesses beats shipping a broken
+//= NPC. Re-attempt de-crowding only with coordinates verified
+//= walkable first.
 //=
 //= #16 Storage Keeper — opens account storage. `openstorage`
 //= needs no Kafra card / fee here; a convenience desk, the real
@@ -26,7 +31,7 @@
 //= recalc. ponytail: a timed rentitem mount is the upgrade path.
 //============================================================
 
-prontera,143,178,4	script	Storage Keeper	4_F_KAFRA1,{
+prontera,160,188,4	script	Storage Keeper	4_F_KAFRA1,{
 	mes "[Storage Keeper]";
 	mes "Need your storage? Right here.";
 	next;
