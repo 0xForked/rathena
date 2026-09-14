@@ -148,5 +148,6 @@ prt_in,28,73,4	script	Wise Old Woman#eAcustom	78,{
 	}
 }
 
-// eXRo (RPT-004 #10): plaza duplicate at the Prontera QoL hub.
-prontera,163,180,4	duplicate(Wise Old Woman#eAcustom)	Wise Old Woman#eAprt	78
+// eXRo (RPT-004 #10): plaza duplicate. Moved south of the fountain, away from
+// the crowded stock-NPC cluster the old tile shared.
+prontera,158,163,4	duplicate(Wise Old Woman#eAcustom)	Wise Old Woman#eAprt	78

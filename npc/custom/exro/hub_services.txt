@@ -1,9 +1,12 @@
 //===== eXRo Script ==========================================
 //= Hub Services — storage + mount rental at the Prontera plaza
 //===== Description: =========================================
-//= RPT-004 #16 + #17 (+ helps #19). Two small QoL NPCs next to
-//= the rest of the services hub (warper / healer / jobmaster /
-//= stylist / reset / coin shops).
+//= RPT-004 #16 + #17 (+ helps #19). Two small QoL NPCs, spread
+//= apart on the west (Storage) and east (Rental) sides of the
+//= plaza — the fountain-front stock NPC cluster (Coin Shop, Gear
+//= Box Vend, Guild Warehouse Manager, Devil Square Guardian,
+//= Smile Girl, Mado Gear Armorer, Prontera Guide, Market Kiosk)
+//= made the old shared tile unreachable by click.
 //=
 //= #16 Storage Keeper — opens account storage. `openstorage`
 //= needs no Kafra card / fee here; a convenience desk, the real
@@ -23,7 +26,7 @@
 //= recalc. ponytail: a timed rentitem mount is the upgrade path.
 //============================================================
 
-prontera,160,188,4	script	Storage Keeper	4_F_KAFRA1,{
+prontera,143,178,4	script	Storage Keeper	4_F_KAFRA1,{
 	mes "[Storage Keeper]";
 	mes "Need your storage? Right here.";
 	next;
@@ -34,7 +37,7 @@ prontera,160,188,4	script	Storage Keeper	4_F_KAFRA1,{
 	end;
 }
 
-prontera,158,188,4	script	Rental Master	4_M_JOB_KNIGHT2,{
+prontera,172,178,4	script	Rental Master	4_M_JOB_KNIGHT2,{
 	mes "[Rental Master]";
 	mes "Free mounts. 'Rental Mount' works for any class; the others need your job's mount skill.";
 	next;

@@ -16,7 +16,8 @@
 //= 2.0 Added 4th class [Lemongrass]
 //============================================================
 
-prontera,153,193,6	script	Job Master	123,{
+// eXRo RPT-004: moved off the crowded fountain-front stock-NPC tile
+prontera,143,196,6	script	Job Master	123,{
 function Get_Job_Equip;
 // Checks if the Player has the required level.
 // closes if not, returns if yes
