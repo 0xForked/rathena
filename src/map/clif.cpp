@@ -1163,7 +1163,9 @@ static void clif_set_unit_idle( const block_list* bl, bool walking, send_target 
 	p.font = (sd) ? sd->status.font : 0;
 #endif
 #if PACKETVER >= 20120221
-	if( battle_config.monster_hp_bars_info && !map_getmapflag( bl->m, MF_HIDEMOBHPBAR ) && bl->type == BL_MOB && ( status_get_hp( bl ) < status_get_max_hp( bl ) ) ){
+	// SeROja: dropped the "only if already damaged" clause so HP bars show from
+	// spawn (always-on monster HP bars), not just after the first hit.
+	if( battle_config.monster_hp_bars_info && !map_getmapflag( bl->m, MF_HIDEMOBHPBAR ) && bl->type == BL_MOB ){
 		p.maxHP = status_get_max_hp(bl);
 		p.HP = status_get_hp(bl);
 	}else{
@@ -1310,7 +1312,8 @@ static void clif_spawn_unit( const block_list* bl, enum send_target target ){
 	p.font = (sd) ? sd->status.font : 0;
 #endif
 #if PACKETVER >= 20120221
-	if( battle_config.monster_hp_bars_info && bl->type == BL_MOB && !map_getmapflag( bl->m, MF_HIDEMOBHPBAR ) && ( status_get_hp( bl ) < status_get_max_hp( bl ) ) ){
+	// SeROja: always-on monster HP bars (see clif_set_unit_idle for rationale).
+	if( battle_config.monster_hp_bars_info && bl->type == BL_MOB && !map_getmapflag( bl->m, MF_HIDEMOBHPBAR ) ){
 		p.maxHP = status_get_max_hp( bl );
 		p.HP = status_get_hp( bl );
 	}else{
@@ -1418,7 +1421,8 @@ static void clif_set_unit_walking( const block_list& bl, const map_session_data*
 	p.font = (sd) ? sd->status.font : 0;
 #endif
 #if PACKETVER >= 20120221
-	if( battle_config.monster_hp_bars_info && !map_getmapflag(bl.m, MF_HIDEMOBHPBAR) && bl.type == BL_MOB && (status_get_hp( &bl ) < status_get_max_hp( &bl ) ) ){
+	// SeROja: always-on monster HP bars (see clif_set_unit_idle for rationale).
+	if( battle_config.monster_hp_bars_info && !map_getmapflag(bl.m, MF_HIDEMOBHPBAR) && bl.type == BL_MOB ){
 		p.maxHP = status_get_max_hp( &bl );
 		p.HP = status_get_hp( &bl );
 	} else {

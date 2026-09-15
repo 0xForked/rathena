@@ -1,0 +1,38 @@
+//===== SeROja Script ==========================================
+//= Donor badge client bridge (Graphics Settings > Extras)
+//===== Description: =========================================
+//= Same serojaBridge protocol as market_client.txt/mall.txt
+//= (bindatcmd "exdn", SEROJA TSV over dispbottom). One op,
+//= "status": reuses donor.txt's exact lifetime-CP-credited gate
+//= (www_cashpoint_ledger SUM(delta>0) >= 500) so the client badge
+//= and the Training Ground gate never disagree on who's a donor.
+//============================================================
+
+-	script	seroja_donor_bridge	-1,{
+	end;
+
+OnInit:
+	bindatcmd "exdn", strnpcinfo(3) + "::OnCmd", 0, 99;
+	end;
+
+OnCmd:
+	if (.@atcmd_numparameters < 2) {
+		dispbottom "SEROJA\t0\tERR\tbad request";
+		end;
+	}
+	.@nonce$ = .@atcmd_parameters$[0];
+	.@op$    = .@atcmd_parameters$[1];
+
+	if (.@op$ == "status") {
+		.@threshold = 500;
+		.@n = query_sql("SELECT COALESCE(SUM(delta),0) FROM `www_cashpoint_ledger` "
+			+ "WHERE account_id = " + getcharid(3) + " AND delta > 0", .@life);
+		.@lifetime = (.@n > 0) ? .@life[0] : 0;
+		dispbottom "SEROJA\t" + .@nonce$ + "\tROW\t" + ((.@lifetime >= .@threshold) ? 1 : 0);
+		dispbottom "SEROJA\t" + .@nonce$ + "\tEND\tstatus";
+		end;
+	}
+
+	dispbottom "SEROJA\t" + .@nonce$ + "\tERR\tunknown op";
+	end;
+}
