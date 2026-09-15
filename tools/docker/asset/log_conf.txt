@@ -1,4 +1,4 @@
-// eXRo log-config overrides  (PLAN-018 Phase F / F4)
+// SeROja log-config overrides  (PLAN-018 Phase F / F4)
 // ---------------------------------------------------------------------------
 // Tracked asset. Mounted over /rathena/conf/import/log_conf.txt by
 // run-nopod.sh / run-prod.sh / docker-compose.AIO.yaml. Additive over

@@ -1,4 +1,4 @@
-//===== eXRo Script ==========================================
+//===== SeROja Script ==========================================
 //= Grade Station + Grade Supplies  (PLAN-018 Phase E / E1, E7)
 //===== Description: =========================================
 //= Grade Enhancement front end. `feature.enchantgrade: on` is set
@@ -12,7 +12,7 @@
 //=                    #ACTIVITYCOIN (another sink for the PLAN-016
 //=                    earned currency).
 //=
-//= Also here (E7): the eXRo reward-box opener. The boxes are
+//= Also here (E7): the SeROja reward-box opener. The boxes are
 //= db/import/item_group_db.yml (asset). A box item given by other
 //= scripts / events calls `getgroupitem <group>`.
 //=
@@ -32,7 +32,7 @@ prontera,146,187,4	script	Grade Station	4_M_REPAIR,{
 	close;
 }
 
-prontera,144,187,4	script	Grade Supplies#exro	4_M_ALCHE_A,{
+prontera,144,187,4	script	Grade Supplies#seroja	4_M_ALCHE_A,{
 	mes "[Grade Supplies]";
 	mes "Everything you need to feed the grade window.";
 	mes " Zeny + ^0055FF#ACTIVITYCOIN^000000 (earned by playing).";
@@ -79,12 +79,12 @@ prontera,144,187,4	script	Grade Supplies#exro	4_M_ALCHE_A,{
 
 //= E7 — reward-box roller. A custom item_group would need a C++ constant, so
 //= the pools are rolled IN SCRIPT instead. Call from an event / quest / a box
-//= item's Script:  callfunc "F_ExroBox", <pool>;
-//=   pool 0  IG_ExroDailyCache  — small: consumables + a little zeny
-//=   pool 1  IG_ExroEventCrate  — event: grade supplies, coins, gacha boxes
+//= item's Script:  callfunc "F_SeROjaBox", <pool>;
+//=   pool 0  IG_SeROjaDailyCache  — small: consumables + a little zeny
+//=   pool 1  IG_SeROjaEventCrate  — event: grade supplies, coins, gacha boxes
 //= Weights are the array index spread (equal-weight per listed row; repeat a
 //= row to weight it up). delitem of the box happens in the caller.
-function	script	F_ExroBox	{
+function	script	F_SeROjaBox	{
 	.@pool = getarg(0);
 	if (.@pool == 0) {
 		setarray .@id[0], 504, 505, 601, 656, 607, 645;   // white/blue pot, fly wing, awake, ygg berry, center

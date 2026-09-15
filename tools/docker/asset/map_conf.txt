@@ -2,16 +2,16 @@ char_ip: char
 map_ip: 127.0.0.1
 
 // Inter-server auth — must match conf/import/char_conf.txt + the login
-// account_id=1 row (rathena/sql-files/z_exro_server_account.sql). DEV values;
+// account_id=1 row (rathena/sql-files/z_seroja_server_account.sql). DEV values;
 // prod rotates (DEPLOY.md). PLAN-015.
-userid: exro_srv
-passwd: exro_dev
+userid: seroja_srv
+passwd: seroja_dev
 
-// eXRo MOTD (PLAN-015). Content lives in conf/import/motd_exro.txt so the stock
+// SeROja MOTD (PLAN-015). Content lives in conf/import/motd_seroja.txt so the stock
 // conf/motd.txt is never edited.
-motd_txt: conf/import/motd_exro.txt
+motd_txt: conf/import/motd_seroja.txt
 
-// eXRo channels (PLAN-018 D6b). Overrides map_athena.conf's
+// SeROja channels (PLAN-018 D6b). Overrides map_athena.conf's
 // `channel_conf: conf/channels.conf`. The file is the whole channel_config
 // block (rAthena does not merge it) — #main auto-join + #map auto-join.
-channel_conf: conf/import/channels_exro.conf
+channel_conf: conf/import/channels_seroja.conf

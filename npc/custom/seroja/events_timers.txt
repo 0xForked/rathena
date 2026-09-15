@@ -1,4 +1,4 @@
-//===== eXRo Script ==========================================
+//===== SeROja Script ==========================================
 //= Chaos Hour + Double-EXP Weekend timers  (PLAN-017 / Phase C)
 //===== Description: =========================================
 //= Two schedule-driven toggles. No conf/import edit — the
@@ -22,7 +22,7 @@
 //= Container clock is UTC (PLAN-012); every OnClock time is UTC.
 //============================================================
 
--	script	exro_timers	-1,{
+-	script	seroja_timers	-1,{
 	end;
 
 OnInit:
@@ -36,35 +36,35 @@ OnInit:
 	if (.@d == 5 || .@d == 6 || .@d == 0) {
 		setbattleflag "base_exp_rate", .base_x2;
 		setbattleflag "job_exp_rate", .base_x2;
-		debugmes "exro_timers: restart inside Double-EXP weekend — re-applied x2.";
+		debugmes "seroja_timers: restart inside Double-EXP weekend — re-applied x2.";
 	}
 	end;
 
 // ---- Chaos Hour: 19:00-20:00 UTC on .chaos_map$ ----------
 OnClock1850:
-	announce "[eXRo] Chaos Hour on " + .chaos_map$ + " in 10 minutes — free-for-all PvP on that map.", bc_all;
+	announce "[SeROja] Chaos Hour on " + .chaos_map$ + " in 10 minutes — free-for-all PvP on that map.", bc_all;
 	end;
 
 OnClock1900:
 	setmapflag .chaos_map$, mf_pvp;
-	announce "[eXRo] Chaos Hour is LIVE — PvP is ON on " + .chaos_map$ + " for one hour.", bc_all;
+	announce "[SeROja] Chaos Hour is LIVE — PvP is ON on " + .chaos_map$ + " for one hour.", bc_all;
 	end;
 
 OnClock2000:
 	removemapflag .chaos_map$, mf_pvp;
-	announce "[eXRo] Chaos Hour is over — PvP on " + .chaos_map$ + " is off.", bc_all;
+	announce "[SeROja] Chaos Hour is over — PvP on " + .chaos_map$ + " is off.", bc_all;
 	end;
 
 // ---- Double-EXP Weekend: Fri 00:00 -> Mon 00:00 UTC ------
 OnFri0000:
 	setbattleflag "base_exp_rate", .base_x2;
 	setbattleflag "job_exp_rate", .base_x2;
-	announce "[eXRo] Double-EXP Weekend has begun! Base & Job EXP are x2 until Monday 00:00 UTC.", bc_all;
+	announce "[SeROja] Double-EXP Weekend has begun! Base & Job EXP are x2 until Monday 00:00 UTC.", bc_all;
 	end;
 
 OnMon0000:
 	setbattleflag "base_exp_rate", .base_x1;
 	setbattleflag "job_exp_rate", .base_x1;
-	announce "[eXRo] Double-EXP Weekend has ended — EXP rates are back to normal.", bc_all;
+	announce "[SeROja] Double-EXP Weekend has ended — EXP rates are back to normal.", bc_all;
 	end;
 }

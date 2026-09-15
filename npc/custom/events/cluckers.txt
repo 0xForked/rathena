@@ -46,7 +46,7 @@ prontera,156,219,4	script	Cluckers	800,{
 					specialeffect2 EF_SPHERE;
 					announce "[Cluck! Cluck! Boom!] " + strcharinfo(0) + " squeezed out the prize! Well done!",0;
 					getitem $cluck_item_id,$cluck_item_amount;
-					callfunc "F_AddActCoin", 3;	// eXRo (PLAN-017): event participation payout
+					callfunc "F_AddActCoin", 3;	// SeROja (PLAN-017): event participation payout
 					set .startcluck,0;
 				} else {
 					npctalk "Cluckers : Cluck! CLUUUCK!!";

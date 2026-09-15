@@ -1,4 +1,4 @@
-# eXRo — Daily Check-in  (PLAN-018 Phase D / D5)
+# SeROja — Daily Check-in  (PLAN-018 Phase D / D5)
 # ---------------------------------------------------------------------------
 # Tracked asset. Mounted over /rathena/db/import/attendance.yml by
 # run-nopod.sh / run-prod.sh / docker-compose.AIO.yaml. db/import/ is

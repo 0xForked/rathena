@@ -40,7 +40,7 @@ Header:
   Type: PLAYER_GROUP_DB
   Version: 1
 
-# eXRo (PLAN-015 / Phase 2a): give every regular player (group 0) a generous
+# SeROja (PLAN-015 / Phase 2a): give every regular player (group 0) a generous
 # quality-of-life command set.
 #
 # The group DB import MERGES into the stock definition, so this Body lists ONLY

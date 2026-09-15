@@ -1,4 +1,4 @@
-//===== eXRo Script ==========================================
+//===== SeROja Script ==========================================
 //= Fitting Room — Costume Mirror  (PLAN-018 Phase D / D6a)
 //===== Description: =========================================
 //= Try any headgear / garment look for free before you buy or
@@ -19,7 +19,7 @@
 //============================================================
 
 // RPT-004 #20: real look for an EQI slot = its item's view id, 0 if empty.
-function	script	F_ExroSlotView	{
+function	script	F_SeROjaSlotView	{
 	.@it = getequipid(getarg(0));
 	return (.@it > 0) ? getiteminfo(.@it, ITEMINFO_VIEW) : 0;
 }
@@ -28,10 +28,10 @@ prontera,164,185,4	script	Costume Mirror	4_F_KAFRA1,{
 	// snapshot the REAL looks from equipment (not getlook(), which
 	// would capture a look already left stuck by an earlier ESC-out).
 	// Costume slot shows over the normal slot, so it wins.
-	.@r_top = callfunc("F_ExroSlotView", EQI_COSTUME_HEAD_TOP); if (!.@r_top) .@r_top = callfunc("F_ExroSlotView", EQI_HEAD_TOP);
-	.@r_mid = callfunc("F_ExroSlotView", EQI_COSTUME_HEAD_MID); if (!.@r_mid) .@r_mid = callfunc("F_ExroSlotView", EQI_HEAD_MID);
-	.@r_bot = callfunc("F_ExroSlotView", EQI_COSTUME_HEAD_LOW); if (!.@r_bot) .@r_bot = callfunc("F_ExroSlotView", EQI_HEAD_LOW);
-	.@r_rob = callfunc("F_ExroSlotView", EQI_COSTUME_GARMENT);  if (!.@r_rob) .@r_rob = callfunc("F_ExroSlotView", EQI_GARMENT);
+	.@r_top = callfunc("F_SeROjaSlotView", EQI_COSTUME_HEAD_TOP); if (!.@r_top) .@r_top = callfunc("F_SeROjaSlotView", EQI_HEAD_TOP);
+	.@r_mid = callfunc("F_SeROjaSlotView", EQI_COSTUME_HEAD_MID); if (!.@r_mid) .@r_mid = callfunc("F_SeROjaSlotView", EQI_HEAD_MID);
+	.@r_bot = callfunc("F_SeROjaSlotView", EQI_COSTUME_HEAD_LOW); if (!.@r_bot) .@r_bot = callfunc("F_SeROjaSlotView", EQI_HEAD_LOW);
+	.@r_rob = callfunc("F_SeROjaSlotView", EQI_COSTUME_GARMENT);  if (!.@r_rob) .@r_rob = callfunc("F_SeROjaSlotView", EQI_GARMENT);
 
 	mes "[Costume Mirror]";
 	mes "Give me an item ID and I'll show you the look — no charge, nothing kept.";

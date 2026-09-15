@@ -1,13 +1,13 @@
-//===== eXRo Script ==========================================
-//= Daily Hunt — daily quest for eXRo Coin  (PLAN-016 / Phase B)
+//===== SeROja Script ==========================================
+//= Daily Hunt — daily quest for SeROja Coin  (PLAN-016 / Phase B)
 //===== Description: =========================================
 //= One quest a day: kill 100 of a rolled target from your
-//= level tier, turn in for eXRo Coin.
+//= level tier, turn in for SeROja Coin.
 //= No streak, no weekly bonus. Resets at 00:00 server time
 //= (the map container runs TZ=UTC, PLAN-012), keyed on
 //= DT_DAYOFYEAR.
 //=
-//= Reward by BaseLevel tier: 1 / 2 / 4 / 5 / 7 #EXROCOIN.
+//= Reward by BaseLevel tier: 1 / 2 / 4 / 5 / 7 #SEROJACOIN.
 //=
 //= Pool rule: within a tier, a mob can be rolled up to 3 times
 //= before the tier's pick counters reset — so you cycle the
@@ -23,12 +23,12 @@
 //= leaderboard.txt): cheap early-outs, no query on a miss.
 //============================================================
 
--	script	exro_dailyquest	-1,{
+-	script	seroja_dailyquest	-1,{
 	end;
 
 OnInit:
 	// RPT-004 #18: only the kill-tally goal is needed here. The tier
-	// pools / reward table / S_Roll live in the visible Daily Hunt#exro
+	// pools / reward table / S_Roll live in the visible Daily Hunt#seroja
 	// NPC (NPC-scope `.` vars do not cross NPCs), which broke the roll
 	// and the turn-in payout when they were only set on this controller.
 	.goal = 100;
@@ -47,7 +47,7 @@ OnNPCKillEvent:
 	end;
 }
 
-prontera,168,191,4	script	Daily Hunt#exro	8W_SOLDIER,{
+prontera,168,191,4	script	Daily Hunt#seroja	8W_SOLDIER,{
 	.@today = gettime(DT_DAYOFYEAR);
 	mes "[Daily Hunt]";
 
@@ -77,16 +77,16 @@ prontera,168,191,4	script	Daily Hunt#exro	8W_SOLDIER,{
 	// ready to turn in
 	.@tier = callfunc("F_DqTier", BaseLevel);
 	.@rw = .reward[.@tier];
-	callfunc "F_AddExroCoin", .@rw;
+	callfunc "F_AddSeROjaCoin", .@rw;
 	set #dq_kills, -1;
 	mes "Bounty complete — nicely done.";
-	mes "Paid out ^0055FF" + .@rw + " eXRo Coin^000000. See you tomorrow.";
+	mes "Paid out ^0055FF" + .@rw + " SeROja Coin^000000. See you tomorrow.";
 	close;
 
 OnInit:
 	// RPT-004 #18: config lives on THIS NPC (S_Roll + the turn-in read
 	// .pool_*/.reward/.goal, which are NPC-scoped and were only set on
-	// the exro_dailyquest controller).
+	// the seroja_dailyquest controller).
 	setarray .pool_T1[0], 1002,1007,1063,1113,1009;   // Poring/Fabre/Lunatic/Drops/Condor
 	setarray .pool_T2[0], 1013,1014,1055,1052,1166;   // Wolf/Spore/Muka/Rocker/Savage
 	setarray .pool_T3[0], 1023,1037,1206,1613,1103;   // OrcWarrior/SideWinder/Anolian/Metaling/Caramel

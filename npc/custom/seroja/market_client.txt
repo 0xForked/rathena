@@ -1,23 +1,23 @@
-//===== eXRo Script ==========================================
+//===== SeROja Script ==========================================
 //= Market Kiosk + client bridge  (PLAN-018 Phase D / D3, D3c)
 //===== Description: =========================================
 //= In-game browse + buy over the same www_market_* tables the
 //= website /market uses. Two front ends, one money path:
 //=
 //=   * `Market Kiosk` NPC  (prontera,158,185) — clickable menu.
-//=   * `exro_market_bridge` floating NPC — `bindatcmd "exmk"`.
-//=     The eXRo client window (src/UI/Components/ExroMarket) sends
+//=   * `seroja_market_bridge` floating NPC — `bindatcmd "exmk"`.
+//=     The SeROja client window (src/UI/Components/SeROjaMarket) sends
 //=     "@exmk <nonce> <op> <args>" as chat; this NPC replies with
-//=     dispbottom TSV lines the window's exroBridge.js parses:
-//=         EXRO<TAB><nonce><TAB>ROW<TAB><f0><TAB><f1>...
-//=         EXRO<TAB><nonce><TAB>END<TAB><op>
-//=         EXRO<TAB><nonce><TAB>ERR<TAB><reason>
+//=     dispbottom TSV lines the window's serojaBridge.js parses:
+//=         SEROJA<TAB><nonce><TAB>ROW<TAB><f0><TAB><f1>...
+//=         SEROJA<TAB><nonce><TAB>END<TAB><op>
+//=         SEROJA<TAB><nonce><TAB>ERR<TAB><reason>
 //=     dispbottom -> ZC_NOTIFY_PLAYERCHAT (0x8e); the window
-//=     swallows EXRO-prefixed lines so they never hit the chatbox.
+//=     swallows SEROJA-prefixed lines so they never hit the chatbox.
 //=
 //= Settlement: the website buyListing (ONE InnoDB tx, ADR-0011)
 //= stays canonical. This script cannot hold a cross-statement
-//= transaction (query_sql autocommits), so F_ExroMktBuy uses the
+//= transaction (query_sql autocommits), so F_SeROjaMktBuy uses the
 //= same money-safe ORDERING:
 //=   1. atomic claim   UPDATE ... status='sold' WHERE status='active'
 //=                     + SELECT ROW_COUNT() == 1   (one winner)
@@ -51,7 +51,7 @@
 // args: getarg(0) listing id (string), getarg(1) buyer account id,
 //       getarg(2) buyer char id, getarg(3) buyer name (for the order row)
 // ---------------------------------------------------------------------------
-function	script	F_ExroMktBuy	{
+function	script	F_SeROjaMktBuy	{
 	.@lid$      = getarg(0);
 	.@buyer_aid = getarg(1);
 	.@buyer_cid = getarg(2);
@@ -68,7 +68,7 @@ function	script	F_ExroMktBuy	{
 	query_sql("SELECT price, account_id, name FROM `www_market_listings` "
 		+ "WHERE id = '" + escape_sql(.@lid$) + "'", .@price, .@seller_aid, .@iname$);
 	if (getarraysize(.@price) < 1 || .@price[0] < 1) {
-		callfunc "F_ExroMktUnclaim", .@lid$;
+		callfunc "F_SeROjaMktUnclaim", .@lid$;
 		return "listing data error";
 	}
 
@@ -85,7 +85,7 @@ function	script	F_ExroMktBuy	{
 		.@e_oi2, .@e_ov2, .@e_op2, .@e_oi3, .@e_ov3, .@e_op3,
 		.@e_oi4, .@e_ov4, .@e_op4);
 	if (.@has_esc < 1) {
-		callfunc "F_ExroMktUnclaim", .@lid$;
+		callfunc "F_SeROjaMktUnclaim", .@lid$;
 		return "no item attached";
 	}
 
@@ -94,7 +94,7 @@ function	script	F_ExroMktBuy	{
 		+ " WHERE account_id = " + .@buyer_aid + " AND zeny_balance >= " + .@price[0]);
 	query_sql("SELECT ROW_COUNT()", .@aff);
 	if (.@aff[0] != 1) {
-		callfunc "F_ExroMktUnclaim", .@lid$;
+		callfunc "F_SeROjaMktUnclaim", .@lid$;
 		return "market wallet short " + .@price[0] + "z";
 	}
 	// paid — deliver from here, no more rollback
@@ -131,8 +131,8 @@ function	script	F_ExroMktBuy	{
 	setarray .@m_oi2[0], .@e_oi2[0];  setarray .@m_ov2[0], .@e_ov2[0];  setarray .@m_op2[0], .@e_op2[0];
 	setarray .@m_oi3[0], .@e_oi3[0];  setarray .@m_ov3[0], .@e_ov3[0];  setarray .@m_op3[0], .@e_op3[0];
 	setarray .@m_oi4[0], .@e_oi4[0];  setarray .@m_ov4[0], .@e_ov4[0];  setarray .@m_op4[0], .@e_op4[0];
-	mail .@buyer_cid, "eXRo Market", "Market purchase",
-		"Your purchase from the eXRo market: " + .@iname$[0] + ". Thanks for trading!",
+	mail .@buyer_cid, "SeROja Market", "Market purchase",
+		"Your purchase from the SeROja market: " + .@iname$[0] + ". Thanks for trading!",
 		0, .@m_id, .@m_amt, .@m_ref, .@m_bnd,
 		.@m_c0, .@m_c1, .@m_c2, .@m_c3,
 		.@m_oi0, .@m_ov0, .@m_op0, .@m_oi1, .@m_ov1, .@m_op1,
@@ -148,7 +148,7 @@ function	script	F_ExroMktBuy	{
 }
 
 // roll a claimed-but-unpaid listing back so it can be bought again
-function	script	F_ExroMktUnclaim	{
+function	script	F_SeROjaMktUnclaim	{
 	query_sql("UPDATE `www_market_listings` SET status = 'active', updated_at = NOW() "
 		+ "WHERE id = '" + escape_sql(getarg(0)) + "' AND status = 'sold'");
 	return;
@@ -159,7 +159,7 @@ function	script	F_ExroMktUnclaim	{
 // ---------------------------------------------------------------------------
 prontera,158,185,4	script	Market Kiosk	4_M_04,{
 	mes "[Market Kiosk]";
-	mes "Browse and buy from the eXRo market without leaving town.";
+	mes "Browse and buy from the SeROja market without leaving town.";
 	mes "Zeny comes from your ^0055FFmarket wallet^000000 — top it up at the";
 	mes "Market Broker or on the website.";
 	next;
@@ -237,7 +237,7 @@ S_Browse:
 		if (.@have < .@lprice[.@p]) { mes "[Market Kiosk]"; mes "Your market wallet is short."; return; }
 		if (select("Buy it", "Back") == 2) return;
 
-		.@r$ = callfunc("F_ExroMktBuy", .@lid$[.@p], getcharid(3), getcharid(0), strcharinfo(0));
+		.@r$ = callfunc("F_SeROjaMktBuy", .@lid$[.@p], getcharid(3), getcharid(0), strcharinfo(0));
 		mes "[Market Kiosk]";
 		if (.@r$ == "OK") {
 			mes "Bought ^0055FF" + .@lname$[.@p] + "^000000. It's in your ^0055FFRODEX^000000 mailbox.";
@@ -249,10 +249,10 @@ S_Browse:
 }
 
 // ---------------------------------------------------------------------------
-// Client bridge — bindatcmd "exmk". Emits the EXRO TSV protocol via dispbottom.
+// Client bridge — bindatcmd "exmk". Emits the SEROJA TSV protocol via dispbottom.
 // params: [0] nonce  [1] op  [2..] op args
 // ---------------------------------------------------------------------------
--	script	exro_market_bridge	-1,{
+-	script	seroja_market_bridge	-1,{
 	end;
 
 OnInit:
@@ -261,7 +261,7 @@ OnInit:
 
 OnCmd:
 	if (.@atcmd_numparameters < 2) {
-		dispbottom "EXRO\t0\tERR\tbad request";
+		dispbottom "SEROJA\t0\tERR\tbad request";
 		end;
 	}
 	.@nonce$ = .@atcmd_parameters$[0];
@@ -280,9 +280,9 @@ OnCmd:
 			+ "WHERE " + .@where$ + " ORDER BY l.created_at DESC LIMIT 8 OFFSET " + (.@page * 8),
 			.@id$, .@nm$, .@q, .@pr, .@sl$);
 		for (.@i = 0; .@i < .@n; ++.@i)
-			dispbottom "EXRO\t" + .@nonce$ + "\tROW\t" + .@id$[.@i] + "\t" + .@nm$[.@i]
+			dispbottom "SEROJA\t" + .@nonce$ + "\tROW\t" + .@id$[.@i] + "\t" + .@nm$[.@i]
 				+ "\t" + .@q[.@i] + "\t" + .@pr[.@i] + "\t" + .@sl$[.@i];
-		dispbottom "EXRO\t" + .@nonce$ + "\tEND\tbrowse";
+		dispbottom "SEROJA\t" + .@nonce$ + "\tEND\tbrowse";
 		end;
 	}
 
@@ -291,9 +291,9 @@ OnCmd:
 			+ "WHERE account_id = " + .@aid + " ORDER BY created_at DESC LIMIT 30",
 			.@nm$, .@q, .@pr, .@st$);
 		for (.@i = 0; .@i < .@n; ++.@i)
-			dispbottom "EXRO\t" + .@nonce$ + "\tROW\t" + .@nm$[.@i] + "\t" + .@q[.@i]
+			dispbottom "SEROJA\t" + .@nonce$ + "\tROW\t" + .@nm$[.@i] + "\t" + .@q[.@i]
 				+ "\t" + .@pr[.@i] + "\t" + .@st$[.@i];
-		dispbottom "EXRO\t" + .@nonce$ + "\tEND\tmine";
+		dispbottom "SEROJA\t" + .@nonce$ + "\tEND\tmine";
 		end;
 	}
 
@@ -303,26 +303,26 @@ OnCmd:
 			+ "WHERE o.buyer_account_id = " + .@aid + " ORDER BY o.created_at DESC LIMIT 30",
 			.@pr, .@st$, .@nm$);
 		for (.@i = 0; .@i < .@n; ++.@i)
-			dispbottom "EXRO\t" + .@nonce$ + "\tROW\t" + .@nm$[.@i] + "\t" + .@pr[.@i] + "\t" + .@st$[.@i];
-		dispbottom "EXRO\t" + .@nonce$ + "\tEND\torders";
+			dispbottom "SEROJA\t" + .@nonce$ + "\tROW\t" + .@nm$[.@i] + "\t" + .@pr[.@i] + "\t" + .@st$[.@i];
+		dispbottom "SEROJA\t" + .@nonce$ + "\tEND\torders";
 		end;
 	}
 
 	if (.@op$ == "wallet") {
 		query_sql("SELECT zeny_balance FROM `www_market_wallet` WHERE account_id = " + .@aid, .@bal);
-		dispbottom "EXRO\t" + .@nonce$ + "\tROW\t" + ((getarraysize(.@bal)) ? .@bal[0] : 0);
-		dispbottom "EXRO\t" + .@nonce$ + "\tEND\twallet";
+		dispbottom "SEROJA\t" + .@nonce$ + "\tROW\t" + ((getarraysize(.@bal)) ? .@bal[0] : 0);
+		dispbottom "SEROJA\t" + .@nonce$ + "\tEND\twallet";
 		end;
 	}
 
 	if (.@op$ == "buy") {
 		.@lid$ = .@atcmd_parameters$[2];
-		.@r$ = callfunc("F_ExroMktBuy", .@lid$, .@aid, getcharid(0), strcharinfo(0));
-		if (.@r$ == "OK") dispbottom "EXRO\t" + .@nonce$ + "\tEND\tbuy";
-		else              dispbottom "EXRO\t" + .@nonce$ + "\tERR\t" + .@r$;
+		.@r$ = callfunc("F_SeROjaMktBuy", .@lid$, .@aid, getcharid(0), strcharinfo(0));
+		if (.@r$ == "OK") dispbottom "SEROJA\t" + .@nonce$ + "\tEND\tbuy";
+		else              dispbottom "SEROJA\t" + .@nonce$ + "\tERR\t" + .@r$;
 		end;
 	}
 
-	dispbottom "EXRO\t" + .@nonce$ + "\tERR\tunknown op";
+	dispbottom "SEROJA\t" + .@nonce$ + "\tERR\tunknown op";
 	end;
 }

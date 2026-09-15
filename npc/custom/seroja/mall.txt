@@ -1,14 +1,14 @@
-//===== eXRo Script ==========================================
+//===== SeROja Script ==========================================
 //= Equipment Mall + client bridge  (PLAN-018 Phase D / D4, D4c)
 //===== Description: =========================================
 //= A curated ZENY SINK over the www-owned www_mall_catalog table
 //= (query_sql, ADR-0003). Two front ends, one buy path:
 //=
 //=   * `Equipment Mall` NPC (prontera,162,185) — clickable menu.
-//=   * `exro_mall_bridge` floating NPC — `bindatcmd "exml"`. The
-//=     eXRo client window (src/UI/Components/ExroMall) sends
+//=   * `seroja_mall_bridge` floating NPC — `bindatcmd "exml"`. The
+//=     SeROja client window (src/UI/Components/SeROjaMall) sends
 //=     "@exml <nonce> <op> <args>" and reads the dispbottom TSV
-//=     reply (EXRO<TAB><nonce><TAB>ROW|END|ERR<TAB>...), same
+//=     reply (SEROJA<TAB><nonce><TAB>ROW|END|ERR<TAB>...), same
 //=     protocol as market_client.txt.
 //=
 //= Money-safe ordering (same direction as zenysinks.txt): Zeny is
@@ -27,7 +27,7 @@
 //============================================================
 
 // buyer job archetype bit for the current (attached) player
-function	script	F_ExroJobBit	{
+function	script	F_SeROjaJobBit	{
 	return
 		(BaseJob == Job_Swordman) ? 1 :
 		(BaseJob == Job_Mage)     ? 2 :
@@ -39,7 +39,7 @@ function	script	F_ExroJobBit	{
 
 // Shared buy path. Returns "OK" or a short reason. mes-free.
 // args: getarg(0) catalog row id, getarg(1) pack count (1..99), getarg(2) job bit
-function	script	F_ExroMallBuy	{
+function	script	F_SeROjaMallBuy	{
 	.@row_id = getarg(0);
 	.@packs  = getarg(1);
 	.@bit    = getarg(2);
@@ -67,7 +67,7 @@ function	script	F_ExroMallBuy	{
 	} else {
 		setarray .@m_id[0], .@iid[0];
 		setarray .@m_amt[0], .@total;
-		mail getcharid(0), "eXRo Mall", "Equipment Mall order",
+		mail getcharid(0), "SeROja Mall", "Equipment Mall order",
 			"Too heavy to hand over in person — here's your " + getitemname(.@iid[0]) + ".",
 			0, .@m_id, .@m_amt;
 	}
@@ -81,7 +81,7 @@ prontera,162,185,4	script	Equipment Mall	4_F_04,{
 	mes "[Equipment Mall]";
 	mes "Curated gear and supplies, priced in zeny.";
 	next;
-	.@bit = callfunc("F_ExroJobBit");
+	.@bit = callfunc("F_SeROjaJobBit");
 	.@jobclause$ = " AND (job_mask = 0" + ((.@bit) ? " OR (job_mask & " + .@bit + ") <> 0" : "") + ")";
 
 	.@cat$ = "";
@@ -128,7 +128,7 @@ prontera,162,185,4	script	Equipment Mall	4_F_04,{
 		input .@packs, 0, 99;
 		if (.@packs < 1) { mes "[Equipment Mall]"; mes "Cancelled."; close; }
 
-		.@r$ = callfunc("F_ExroMallBuy", .@row_id[.@p], .@packs, .@bit);
+		.@r$ = callfunc("F_SeROjaMallBuy", .@row_id[.@p], .@packs, .@bit);
 		mes "[Equipment Mall]";
 		if (.@r$ == "OK") mes "Sold. Check your pack" + ((checkweight(.@iid[.@p], 1)) ? "." : " / RODEX.");
 		else mes "Couldn't sell that: ^777777" + .@r$ + "^000000.";
@@ -140,7 +140,7 @@ prontera,162,185,4	script	Equipment Mall	4_F_04,{
 // Client bridge — bindatcmd "exml".
 // params: [0] nonce  [1] op  [2..] op args
 // ---------------------------------------------------------------------------
--	script	exro_mall_bridge	-1,{
+-	script	seroja_mall_bridge	-1,{
 	end;
 
 OnInit:
@@ -149,12 +149,12 @@ OnInit:
 
 OnCmd:
 	if (.@atcmd_numparameters < 2) {
-		dispbottom "EXRO\t0\tERR\tbad request";
+		dispbottom "SEROJA\t0\tERR\tbad request";
 		end;
 	}
 	.@nonce$ = .@atcmd_parameters$[0];
 	.@op$    = .@atcmd_parameters$[1];
-	.@bit    = callfunc("F_ExroJobBit");
+	.@bit    = callfunc("F_SeROjaJobBit");
 
 	if (.@op$ == "browse") {
 		.@cat$  = .@atcmd_parameters$[2];
@@ -170,22 +170,22 @@ OnCmd:
 		for (.@i = 0; .@i < .@n; ++.@i) {
 			.@nm$ = getitemname(.@iid[.@i]);
 			if (.@nm$ == "null") .@nm$ = "Item #" + .@iid[.@i];
-			dispbottom "EXRO\t" + .@nonce$ + "\tROW\t" + .@id[.@i] + "\t" + .@nm$
+			dispbottom "SEROJA\t" + .@nonce$ + "\tROW\t" + .@id[.@i] + "\t" + .@nm$
 				+ "\t" + .@qpb[.@i] + "\t" + .@pz[.@i];
 		}
-		dispbottom "EXRO\t" + .@nonce$ + "\tEND\tbrowse";
+		dispbottom "SEROJA\t" + .@nonce$ + "\tEND\tbrowse";
 		end;
 	}
 
 	if (.@op$ == "buy") {
 		.@row_id = atoi(.@atcmd_parameters$[2]);
 		.@packs  = atoi(.@atcmd_parameters$[3]);
-		.@r$ = callfunc("F_ExroMallBuy", .@row_id, .@packs, .@bit);
-		if (.@r$ == "OK") dispbottom "EXRO\t" + .@nonce$ + "\tEND\tbuy";
-		else              dispbottom "EXRO\t" + .@nonce$ + "\tERR\t" + .@r$;
+		.@r$ = callfunc("F_SeROjaMallBuy", .@row_id, .@packs, .@bit);
+		if (.@r$ == "OK") dispbottom "SEROJA\t" + .@nonce$ + "\tEND\tbuy";
+		else              dispbottom "SEROJA\t" + .@nonce$ + "\tERR\t" + .@r$;
 		end;
 	}
 
-	dispbottom "EXRO\t" + .@nonce$ + "\tERR\tunknown op";
+	dispbottom "SEROJA\t" + .@nonce$ + "\tERR\tunknown op";
 	end;
 }

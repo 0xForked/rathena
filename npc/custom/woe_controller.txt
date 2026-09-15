@@ -75,7 +75,7 @@ OnInit:
 // -----------------------------------------------------------
 
 	// Combine values as needed (e.g. 1|8 = 1+8 = 9).
-	// eXRo (PLAN-012): rewards OFF. Set e.g. 1|2 and .reward_id/.reward_zeny
+	// SeROja (PLAN-012): rewards OFF. Set e.g. 1|2 and .reward_id/.reward_zeny
 	// below to enable siege rewards.
 	set .Options, 0;
 
@@ -151,7 +151,7 @@ OnInit:
 	setarray .Days$[0],"Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday";
 
 // -----------------------------------------------------------
-//  eXRo (PLAN-012): hard-code the weekly WoE window, overriding whatever the
+//  SeROja (PLAN-012): hard-code the weekly WoE window, overriding whatever the
 //  in-game Session Manager last stored, so it always matches
 //  www/lib/config/woe.ts. $WOE_CONTROL is groups of 4:
 //    <day 0=Sun..6=Sat>, <start hour>, <end hour>, <castle bitmask>

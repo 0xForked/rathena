@@ -205,11 +205,11 @@ OnTreasureDead:
 	.mob--;
 	announce "Devil Square : "+ strcharinfo(0) +" has opened the Treasure Chest at Devil Square.", bc_all;
 	if ( .mob <= 0 ) {
-		// eXRo (PLAN-017): full-clear bonus. ponytail: only the player who opened
-		// the last chest is attached here, so the #EXROCOIN goes to them, not every
+		// SeROja (PLAN-017): full-clear bonus. ponytail: only the player who opened
+		// the last chest is attached here, so the #SEROJACOIN goes to them, not every
 		// participant — acceptable for a placeholder tuning, revisit if it matters.
 		callfunc "F_AddActCoin", 5;
-		callfunc "F_AddExroCoin", 1;
+		callfunc "F_AddSeROjaCoin", 1;
 		goto OnStopEvent;
 	}
 	end;

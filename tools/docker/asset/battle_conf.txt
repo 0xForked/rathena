@@ -1,4 +1,4 @@
-// eXRo battle-config overrides (bind-mounted to conf/import/battle_conf.txt).
+// SeROja battle-config overrides (bind-mounted to conf/import/battle_conf.txt).
 // Additive over conf/battle/*.conf — only keys set here change.
 
 // Roulette is disabled. The /play client also hides the icon
@@ -15,7 +15,7 @@ feature.roulette_bonus_reward: off
 // for now — a launch-week curation task).
 
 // ------------------------------------------------------------------------
-//  eXRo rates (PLAN-015 / Phase 2a). SOURCE OF TRUTH for the numbers the
+//  SeROja rates (PLAN-015 / Phase 2a). SOURCE OF TRUTH for the numbers the
 //  site shows — keep www/lib/config/rates.ts in lockstep with these.
 //    EXP:   38x base / job / quest / MVP
 //    Drops: 9x common / heal / use / equip (+ boss + MVP variants) + treasure

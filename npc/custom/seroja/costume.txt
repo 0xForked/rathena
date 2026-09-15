@@ -1,4 +1,4 @@
-//===== eXRo Script ==========================================
+//===== SeROja Script ==========================================
 //= Wardrobe — costume access  (PLAN-018 Phase E / E6)
 //===== Description: =========================================
 //= The fork's item_db already ships ~3,500 costume-slot items

@@ -1,5 +1,5 @@
-//===== eXRo Script ==========================================
-//= Earned Currency — Activity Coin + eXRo Coin  (PLAN-016 / Phase B)
+//===== SeROja Script ==========================================
+//= Earned Currency — Activity Coin + SeROja Coin  (PLAN-016 / Phase B)
 //===== Description: =========================================
 //= Two earned, account-wide currencies stored as global
 //= account reg vars (unloseable, shared across a player's
@@ -14,17 +14,17 @@
 //=       — ponytail: a moving bot still farms it; a daily cap
 //=       + anti-bot is RPT-003, not launch.
 //=
-//=   #EXROCOIN — daily quest (see dailyquest.txt), and later
+//=   #SEROJACOIN — daily quest (see dailyquest.txt), and later
 //=       events / WoE. Spent at the Gear Box Vend below.
 //=
-//= Helpers F_AddActCoin(n) / F_AddExroCoin(n) are the one way
-//= other eXRo scripts grant coins. Every shop here debits the
+//= Helpers F_AddActCoin(n) / F_AddSeROjaCoin(n) are the one way
+//= other SeROja scripts grant coins. Every shop here debits the
 //= coin only AFTER the weight check passes, so there is no
 //= refund path to get wrong.
 //= Item ids verified against db/re/item_db_*.yml (2026-09-10).
 //============================================================
 
--	script	exro_currency	-1,{
+-	script	seroja_currency	-1,{
 	end;
 
 OnInit:
@@ -42,7 +42,7 @@ OnTimer60000:
 			set #ACTCOIN_MIN, #ACTCOIN_MIN + 1;
 			if (#ACTCOIN_MIN % 60 == 0) {
 				set #ACTIVITYCOIN, #ACTIVITYCOIN + 1;
-				dispbottom "[eXRo] +1 Activity Coin for time played — " + #ACTIVITYCOIN + " total.";
+				dispbottom "[SeROja] +1 Activity Coin for time played — " + #ACTIVITYCOIN + " total.";
 			}
 		}
 		detachrid;
@@ -53,18 +53,18 @@ OnTimer60000:
 
 function	script	F_AddActCoin	{
 	set #ACTIVITYCOIN, #ACTIVITYCOIN + getarg(0);
-	dispbottom "[eXRo] +" + getarg(0) + " Activity Coin — " + #ACTIVITYCOIN + " total.";
+	dispbottom "[SeROja] +" + getarg(0) + " Activity Coin — " + #ACTIVITYCOIN + " total.";
 	return;
 }
 
-function	script	F_AddExroCoin	{
-	set #EXROCOIN, #EXROCOIN + getarg(0);
-	dispbottom "[eXRo] +" + getarg(0) + " eXRo Coin — " + #EXROCOIN + " total.";
+function	script	F_AddSeROjaCoin	{
+	set #SEROJACOIN, #SEROJACOIN + getarg(0);
+	dispbottom "[SeROja] +" + getarg(0) + " SeROja Coin — " + #SEROJACOIN + " total.";
 	return;
 }
 
 //== Coin Shop — Activity Coin -> convenience consumables =====
-prontera,164,191,4	script	Coin Shop#exro	4_F_KAFRA1,{
+prontera,164,191,4	script	Coin Shop#seroja	4_F_KAFRA1,{
 	mes "[Coin Shop]";
 	mes "Activity Coins: ^0055FF" + #ACTIVITYCOIN + "^000000";
 	mes "You earn one for every hour played. Spend them here.";
@@ -98,10 +98,10 @@ prontera,164,191,4	script	Coin Shop#exro	4_F_KAFRA1,{
 	close;
 }
 
-//== Gear Box Vend — eXRo Coin -> curated material boxes ======
-prontera,166,191,4	script	Gear Box Vend#exro	4_M_ALCHE_A,{
+//== Gear Box Vend — SeROja Coin -> curated material boxes ======
+prontera,166,191,4	script	Gear Box Vend#seroja	4_M_ALCHE_A,{
 	mes "[Gear Box Vend]";
-	mes "eXRo Coins: ^0055FF" + #EXROCOIN + "^000000";
+	mes "SeROja Coins: ^0055FF" + #SEROJACOIN + "^000000";
 	mes "Earn them from the Daily Hunt. Trade them for gear-up materials.";
 	next;
 	.@s = select(
@@ -114,9 +114,9 @@ prontera,166,191,4	script	Gear Box Vend#exro	4_M_ALCHE_A,{
 	if (.@s == 1) { setarray .@id[0], 6240, 6241, 6635; setarray .@amt[0], 10, 10, 2; .@cost = 15; }
 	if (.@s == 2) { setarray .@id[0], 7620, 7619;       setarray .@amt[0], 20, 20;    .@cost = 12; }
 	if (.@s == 3) { setarray .@id[0], 12208, 12210;     setarray .@amt[0], 10, 10;    .@cost = 10; }
-	if (#EXROCOIN < .@cost) {
+	if (#SEROJACOIN < .@cost) {
 		mes "[Gear Box Vend]";
-		mes "That costs " + .@cost + " eXRo Coins — you have " + #EXROCOIN + ".";
+		mes "That costs " + .@cost + " SeROja Coins — you have " + #SEROJACOIN + ".";
 		close;
 	}
 	if (!checkweight2(.@id, .@amt)) {
@@ -124,10 +124,10 @@ prontera,166,191,4	script	Gear Box Vend#exro	4_M_ALCHE_A,{
 		mes "That won't fit — make room first.";
 		close;
 	}
-	set #EXROCOIN, #EXROCOIN - .@cost;
+	set #SEROJACOIN, #SEROJACOIN - .@cost;
 	for (.@i = 0; .@i < getarraysize(.@id); .@i++)
 		getitem .@id[.@i], .@amt[.@i];
 	mes "[Gear Box Vend]";
-	mes "Delivered. " + #EXROCOIN + " eXRo Coins left.";
+	mes "Delivered. " + #SEROJACOIN + " SeROja Coins left.";
 	close;
 }

@@ -1,12 +1,12 @@
-//===== eXRo Script ==========================================
+//===== SeROja Script ==========================================
 //= Event Framework + Custom Invasions  (PLAN-017 / Phase C)
 //===== Description: =========================================
 //= A reusable core for scheduled events: an hourly rotation,
 //= a per-player kill tally, a top-N ranking, and one payout
-//= helper (F_EventReward) that every eXRo event routes its
+//= helper (F_EventReward) that every SeROja event routes its
 //= rewards through.
 //=
-//=   exro_events  — floating -1 controller.
+//=   seroja_events  — floating -1 controller.
 //=     OnInit        builds the rotation + data tables.
 //=     OnMinute55    5-min pre-announce of the NEXT slot.
 //=     OnMinute00    advances .slot, starts that slot's event.
@@ -25,7 +25,7 @@
 //=   Rewards: F_EventReward(charid, accountid, tier) mails the
 //=   tier's zeny + items (so offline winners still get paid),
 //=   then — only if the winner is still online — grants
-//=   #EXROCOIN / #ACTIVITYCOIN via the PLAN-016 helpers. A
+//=   #SEROJACOIN / #ACTIVITYCOIN via the PLAN-016 helpers. A
 //=   winner who logs off between event end and payout loses
 //=   just the coin portion. Announces say "rewards mailed".
 //=
@@ -34,7 +34,7 @@
 //= Item ids reuse the set verified in currency.txt (2026-09-10).
 //============================================================
 
--	script	exro_events	-1,{
+-	script	seroja_events	-1,{
 	end;
 
 OnInit:
@@ -52,24 +52,24 @@ OnInit:
 	.inv_boss_mob = 1087;            // Orc Hero (mini-boss)
 	.inv_minutes  = 15;             // NOTE: the real value lives in the OnTimer900000 label
 	.inv_topn     = 6;
-	.inv_name$    = "eXRo Marauder";
+	.inv_name$    = "SeROja Marauder";
 
 	// Roaming Boss — wandering mini-MVP on a random field map
 	setarray .boss_maps$[0], "prt_fild01","gef_fild00","pay_fild04","mjolnir_02","moc_fild02";
 	.boss_mob       = 1115;          // Eddga
-	.boss_name$     = "eXRo Wandering Terror";
+	.boss_name$     = "SeROja Wandering Terror";
 	.boss_despawn_s = 3600;
 
-	bindatcmd "event", "exro_events::OnGMEvent", 99, 99;
+	bindatcmd "event", "seroja_events::OnGMEvent", 99, 99;
 	end;
 
 // ---- hourly scheduler --------------------------------------
 OnMinute55:
 	.@next$ = .rotation$[(.slot + 1) % .rot_size];
 	if (.@next$ == "TOWN")
-		announce "[eXRo] A town is about to come under siege — be ready in 5 minutes.", bc_all;
+		announce "[SeROja] A town is about to come under siege — be ready in 5 minutes.", bc_all;
 	else if (.@next$ == "BOSS")
-		announce "[eXRo] A roaming terror stirs — a sighting in 5 minutes.", bc_all;
+		announce "[SeROja] A roaming terror stirs — a sighting in 5 minutes.", bc_all;
 	end;
 
 OnMinute00:
@@ -93,24 +93,24 @@ OnStartBoss:
 OnStopEvent:
 	if (.running) {
 		stopnpctimer;
-		killmonster .inv_active_map$, "exro_events::OnInvKill";
+		killmonster .inv_active_map$, "seroja_events::OnInvKill";
 		.running = 0;
 	}
 	if (.boss_running) {
-		killmonster .boss_active_map$, "exro_events::OnBossKill";
+		killmonster .boss_active_map$, "seroja_events::OnBossKill";
 		.boss_running = 0;
 	}
-	announce "[eXRo] A GM has cleared the running event.", bc_all;
+	announce "[SeROja] A GM has cleared the running event.", bc_all;
 	end;
 
 OnGMEvent:
-	mes "[eXRo Events]";
+	mes "[SeROja Events]";
 	mes "Trigger an event manually.";
 	next;
 	switch (select("Start Town Invasion:Start Roaming Boss:Stop / clear:Cancel")) {
-	case 1: donpcevent "exro_events::OnStartTown"; break;
-	case 2: donpcevent "exro_events::OnStartBoss"; break;
-	case 3: donpcevent "exro_events::OnStopEvent"; break;
+	case 1: donpcevent "seroja_events::OnStartTown"; break;
+	case 2: donpcevent "seroja_events::OnStartBoss"; break;
+	case 3: donpcevent "seroja_events::OnStopEvent"; break;
 	}
 	close;
 
@@ -126,12 +126,12 @@ S_StartTownInvasion:
 
 	.@i = rand(getarraysize(.inv_towns$));
 	.inv_active_map$ = .inv_towns$[.@i];
-	announce "[eXRo] A " + .inv_name$ + " horde is descending on " + .inv_active_map$
+	announce "[SeROja] A " + .inv_name$ + " horde is descending on " + .inv_active_map$
 		+ "! Defend it — the top " + .inv_topn + " defenders get mailed.", bc_all;
 	monster .inv_active_map$, .inv_x[.@i], .inv_y[.@i], .inv_name$ + " Raider",
-		.inv_wave_mob, .inv_wave_qty, "exro_events::OnInvKill";
+		.inv_wave_mob, .inv_wave_qty, "seroja_events::OnInvKill";
 	monster .inv_active_map$, .inv_x[.@i], .inv_y[.@i], .inv_name$ + " Warlord",
-		.inv_boss_mob, 1, "exro_events::OnInvKill";
+		.inv_boss_mob, 1, "seroja_events::OnInvKill";
 	stopnpctimer;
 	setnpctimer 0;
 	initnpctimer;
@@ -162,7 +162,7 @@ OnTimer900000:
 	if (!.running)
 		end;
 	stopnpctimer;
-	killmonster .inv_active_map$, "exro_events::OnInvKill";
+	killmonster .inv_active_map$, "seroja_events::OnInvKill";
 	callsub S_PayTownTopN;
 	.running = 0;
 	end;
@@ -170,7 +170,7 @@ OnTimer900000:
 S_PayTownTopN:
 	.@n = getarraysize($@ev_score);
 	if (.@n == 0) {
-		announce "[eXRo] " + .inv_active_map$ + " held — but nobody scored a kill.", bc_all;
+		announce "[SeROja] " + .inv_active_map$ + " held — but nobody scored a kill.", bc_all;
 		return;
 	}
 	// selection sort desc, carrying the parallel arrays. ponytail: O(n^2) on the
@@ -190,7 +190,7 @@ S_PayTownTopN:
 	for (.@i = 0; .@i < .@n; .@i++) {
 		if ($@ev_score[.@i] <= 0)
 			break;
-		callfunc "F_ExroBoardBump", "invasion", $@ev_aid[.@i], $@ev_name$[.@i], $@ev_score[.@i];
+		callfunc "F_SeROjaBoardBump", "invasion", $@ev_aid[.@i], $@ev_name$[.@i], $@ev_score[.@i];
 		if (.@i < .inv_topn) {
 			.@tier = (.@i == 0) ? 1 : ((.@i <= 2) ? 2 : 3);
 			callfunc "F_EventReward", $@ev_cid[.@i], $@ev_aid[.@i], .@tier;
@@ -198,7 +198,7 @@ S_PayTownTopN:
 			callfunc "F_EventReward", $@ev_cid[.@i], $@ev_aid[.@i], 0;
 		}
 	}
-	announce "[eXRo] " + .inv_active_map$ + " held. Top defender: " + $@ev_name$[0]
+	announce "[SeROja] " + .inv_active_map$ + " held. Top defender: " + $@ev_name$[0]
 		+ " (" + $@ev_score[0] + " kills). Rewards mailed.", bc_all;
 	return;
 
@@ -209,13 +209,13 @@ S_StartRoamingBoss:
 	.boss_running = 1;
 	.@i = rand(getarraysize(.boss_maps$));
 	.boss_active_map$ = .boss_maps$[.@i];
-	announce "[eXRo] A " + .boss_name$ + " has been sighted in " + .boss_active_map$ + "!", bc_all;
-	monster .boss_active_map$, 0, 0, .boss_name$, .boss_mob, 1, "exro_events::OnBossKill";
+	announce "[SeROja] A " + .boss_name$ + " has been sighted in " + .boss_active_map$ + "!", bc_all;
+	monster .boss_active_map$, 0, 0, .boss_name$, .boss_mob, 1, "seroja_events::OnBossKill";
 	// ponytail: one npc timer slot is taken by the town invasion, so the boss
 	// self-despawn rides a parked sleep in this instance instead of a second timer.
 	sleep .boss_despawn_s * 1000;
 	if (.boss_running) {
-		killmonster .boss_active_map$, "exro_events::OnBossKill";
+		killmonster .boss_active_map$, "seroja_events::OnBossKill";
 		.boss_running = 0;
 	}
 	end;
@@ -225,12 +225,12 @@ OnBossKill:
 	if (getcharid(3) == 0)
 		end;
 	callfunc "F_EventReward", getcharid(0), getcharid(3), 4;
-	announce "[eXRo] " + strcharinfo(0) + " felled the " + .boss_name$
+	announce "[SeROja] " + strcharinfo(0) + " felled the " + .boss_name$
 		+ " in " + .boss_active_map$ + "!", bc_all;
 	end;
 }
 
-//== F_EventReward — the one payout path for every eXRo event =
+//== F_EventReward — the one payout path for every SeROja event =
 //= getarg(0) = character id (mail target)
 //= getarg(1) = account id  (coin target, online-only)
 //= getarg(2) = tier: 0 participation / 1 top1 / 2 top2-3 /
@@ -246,8 +246,8 @@ function	script	F_EventReward	{
 			callfunc "F_AddActCoin", 1;
 			detachrid;
 		} else {
-			mail .@cid, "eXRo Events", "eXRo Event Reward",
-				"Thanks for taking part in an eXRo event. A small reward is attached.", 20000;
+			mail .@cid, "SeROja Events", "SeROja Event Reward",
+				"Thanks for taking part in an SeROja event. A small reward is attached.", 20000;
 		}
 		return;
 	}
@@ -258,31 +258,31 @@ function	script	F_EventReward	{
 	else if (.@tier == 3) { .@zeny = 150000; setarray .@iid[0],12208,12210;      setarray .@iamt[0],1,1;   }
 	else                  { .@zeny = 400000; setarray .@iid[0],6240,6241,6635;   setarray .@iamt[0],5,5,3; }
 
-	mail .@cid, "eXRo Events", "eXRo Event Reward",
-		"Thanks for taking part in an eXRo event. Your reward is attached. "
-		+ "Any Activity / eXRo Coins were added to your account directly (online only).",
+	mail .@cid, "SeROja Events", "SeROja Event Reward",
+		"Thanks for taking part in an SeROja event. Your reward is attached. "
+		+ "Any Activity / SeROja Coins were added to your account directly (online only).",
 		.@zeny, .@iid, .@iamt;
 
 	// coins only if the winner is still online.
 	if (attachrid(.@aid, false)) {
-		if (.@tier == 1)      { callfunc "F_AddExroCoin", 3; callfunc "F_AddActCoin", 5; }
-		else if (.@tier == 2) { callfunc "F_AddExroCoin", 2; callfunc "F_AddActCoin", 3; }
-		else if (.@tier == 3) { callfunc "F_AddExroCoin", 1; callfunc "F_AddActCoin", 2; }
-		else                  { callfunc "F_AddExroCoin", 5; callfunc "F_AddActCoin", 3; }
+		if (.@tier == 1)      { callfunc "F_AddSeROjaCoin", 3; callfunc "F_AddActCoin", 5; }
+		else if (.@tier == 2) { callfunc "F_AddSeROjaCoin", 2; callfunc "F_AddActCoin", 3; }
+		else if (.@tier == 3) { callfunc "F_AddSeROjaCoin", 1; callfunc "F_AddActCoin", 2; }
+		else                  { callfunc "F_AddSeROjaCoin", 5; callfunc "F_AddActCoin", 3; }
 		detachrid;
 	}
 	return;
 }
 
-//== F_ExroBoardBump — running counter into www_leaderboard_stats (PLAN-019) =
+//== F_SeROjaBoardBump — running counter into www_leaderboard_stats (PLAN-019) =
 //= Feeds the website event boards (C5/C6). Same idiom + column contract as
-//= npc/custom/exro/leaderboard.txt: PK (kind, account_id), INSERT ... ON
+//= npc/custom/seroja/leaderboard.txt: PK (kind, account_id), INSERT ... ON
 //= DUPLICATE KEY UPDATE. Zero HTTP from the map-server (ADR-0003 / ADR-0008).
 //=   getarg(0) = kind ('invasion' | 'mushroom')   -- fixed literals, not input
 //=   getarg(1) = account id (numeric)
 //=   getarg(2) = char name (escape_sql'd here)
 //=   getarg(3) = amount to add to the running score
-function	script	F_ExroBoardBump	{
+function	script	F_SeROjaBoardBump	{
 	.@kind$ = getarg(0);
 	.@aid   = getarg(1);
 	.@name$ = escape_sql(getarg(2));

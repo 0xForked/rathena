@@ -11,7 +11,7 @@
 //===== Additional Comments: =================================
 //= 1.0 Initial script.
 //= 1.1 Switched to 'getbattleflag', credits to Saithis. [Euphy]
-//= 1.2 eXRo (RPT-004 #3): dropped "Cloth color" -- this fork's job
+//= 1.2 SeROja (RPT-004 #3): dropped "Cloth color" -- this fork's job
 //=     body sprites are RGBA-format (EntityRender.js is_rgba check),
 //=     so LOOK_CLOTHES_COLOR has no palette to swap and silently did
 //=     nothing. Confirmed on 2 unrelated jobs (Night Watch, Novice);

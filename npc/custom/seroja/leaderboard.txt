@@ -1,4 +1,4 @@
-//===== eXRo Script ==========================================
+//===== SeROja Script ==========================================
 //= Combat Leaderboard Populator  (PLAN-013)
 //===== Description: =========================================
 //= Feeds the website PvP / MvP leaderboards. One running
@@ -21,7 +21,7 @@
 //=   PK (kind, account_id) — INSERT ... ON DUPLICATE KEY UPDATE.
 //============================================================
 
--	script	exro_leaderboard	-1,{
+-	script	seroja_leaderboard	-1,{
 	end;
 
 OnPCKillEvent:

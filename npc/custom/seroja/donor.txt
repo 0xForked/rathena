@@ -1,4 +1,4 @@
-//===== eXRo Script ==========================================
+//===== SeROja Script ==========================================
 //= Private Training Ground — donor perk  (PLAN-018 Phase E / E3)
 //===== Description: =========================================
 //= A quiet `noexp` room with respawning dummies for build /

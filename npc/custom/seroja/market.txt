@@ -1,7 +1,7 @@
-//===== eXRo Script ==========================================
+//===== SeROja Script ==========================================
 //= Market Broker  (PLAN-005 / ADR-0011)
 //===== Description: =========================================
-//= Bridge between the eXRo website market and the game.
+//= Bridge between the SeROja website market and the game.
 //=   1. Deposit an item into a listing you created on the site.
 //=   2. Top up your market wallet with zeny.
 //=   3. Info on sale proceeds / withdrawals (both web-side).
@@ -29,7 +29,7 @@
 
 prontera,155,185,4	script	Market Broker	4_M_03,{
 	mes "[Market Broker]";
-	mes "I move items and zeny between the eXRo website market and the game.";
+	mes "I move items and zeny between the SeROja website market and the game.";
 	next;
 	switch (select(
 		"Deposit an item for a listing",

@@ -1,4 +1,4 @@
-//===== eXRo Script ==========================================
+//===== SeROja Script ==========================================
 //= Hub Services — storage + mount rental at the Prontera plaza
 //===== Description: =========================================
 //= RPT-004 #16 + #17 (+ helps #19). Two small QoL NPCs at the

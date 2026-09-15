@@ -1,4 +1,4 @@
-Welcome to eXRo -- a browser Ragnarok Online realm.
+Welcome to SeROja -- a browser Ragnarok Online realm.
 Rates: 38x EXP  .  9x drops  .  0.8% cards  .  4th jobs  .  Doram
 War of Emperium: every Saturday 21:00-22:00 UTC (Kriemhild / prtg_cas01).
 QoL NPCs are at the Prontera fountain: Healer, Warper, Job Master, Stylist, Reset.

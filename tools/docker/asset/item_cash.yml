@@ -1,4 +1,4 @@
-# eXRo — Cash Shop catalog  (PLAN-018 Phase D / D2)
+# SeROja — Cash Shop catalog  (PLAN-018 Phase D / D2)
 # ---------------------------------------------------------------------------
 # Tracked asset. Mounted over /rathena/db/import/item_cash.yml by run-nopod.sh
 # / run-prod.sh / docker-compose.AIO.yaml (db/import/ is gitignored upstream —

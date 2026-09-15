@@ -1,4 +1,4 @@
-//===== eXRo Script ==========================================
+//===== SeROja Script ==========================================
 //= WoE Capture Recorder  (PLAN-012)
 //===== Description: =========================================
 //= Records who holds the one contested FE castle (prtg_cas01)

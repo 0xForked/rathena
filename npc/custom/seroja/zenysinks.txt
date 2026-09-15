@@ -1,4 +1,4 @@
-//===== eXRo Script ==========================================
+//===== SeROja Script ==========================================
 //= Zeny Sinks — Stat Trainer + Ore Trader  (PLAN-016 / Phase B)
 //===== Description: =========================================
 //= Drains zeny from the economy — no gambling NPC.
@@ -22,7 +22,7 @@
 //=   Enriched Oridecon 7620  Enriched Elunium 7619
 //============================================================
 
-prontera,150,187,4	script	Stat Trainer#exro	8W_SOLDIER,{
+prontera,150,187,4	script	Stat Trainer#seroja	8W_SOLDIER,{
 	mes "[Stat Trainer]";
 	mes "I'll push a stat one point higher — for the right price.";
 	mes " Basic stat: ^0055FF200,000z^000000 each (cap " + .max_stat + ")";
@@ -84,7 +84,7 @@ OnInit:
 	end;
 }
 
-prontera,148,187,4	script	Ore Trader#exro	4_M_ALCHE_B,{
+prontera,148,187,4	script	Ore Trader#seroja	4_M_ALCHE_B,{
 	mes "[Ore Trader]";
 	mes "Refined ore for sale, and I'll upgrade the rough stuff.";
 	next;
